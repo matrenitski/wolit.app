@@ -173,18 +173,28 @@ export function useWallet(): UseWallet {
     if (status !== 'signedOut' || oneTapStarted.current) return
     oneTapStarted.current = true
     drive.promptAccountChooser(async (acct) => {
-      // The user picked an account from the list.
+      // The user picked an account from the chooser.
+      setError(null)
+      setStatus('authorizing')
+      // 1) Returning users (Drive already granted) get a token with no popup → straight in.
       try {
-        setError(null)
-        setStatus('authorizing')
-        // Returning users (already granted Drive) get a token with no popup.
         await drive.authorizeSilently(acct.email)
         await afterAuthorized()
+        return
       } catch {
-        // First-time / consent needed: surface a one-click "Continue as …".
-        setChosenAccount(acct)
-        setStatus('signedOut')
+        /* not granted yet for this account */
       }
+      // 2) First time: open Google's Drive-consent directly, using the One Tap selection.
+      try {
+        await drive.authorizeWithConsent(acct.email)
+        await afterAuthorized()
+        return
+      } catch {
+        /* consent popup blocked or dismissed */
+      }
+      // 3) Fallback: a one-click "Continue as …" button (e.g. if the popup was blocked).
+      setChosenAccount(acct)
+      setStatus('signedOut')
     })
   }, [status, afterAuthorized])
 
