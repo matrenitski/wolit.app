@@ -51,7 +51,13 @@ export default function App() {
           />
         )}
       </main>
-      <footer className="copyright">© Max Matrenitski 2025–2026</footer>
+      <footer className="copyright">
+        <a className="foot-link" href="/privacy">Privacy</a>
+        <span className="foot-sep">·</span>
+        <a className="foot-link" href="/terms">Terms</a>
+        <span className="foot-sep">·</span>
+        <span>© Max Matrenitski 2025–2026</span>
+      </footer>
     </div>
   )
 }

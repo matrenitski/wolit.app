@@ -83,6 +83,13 @@ export function Landing({
         </button>
       )}
 
+      {configured && (
+        <p className="consent-note">
+          Google will ask to let wolit save your wallet in a private, app-only folder of your
+          Drive — that’s where your key lives, and only you can open it.
+        </p>
+      )}
+
       {error && (
         <div className="banner error mt-8">
           {error}{' '}
