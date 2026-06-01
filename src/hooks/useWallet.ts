@@ -124,6 +124,16 @@ export function useWallet(): UseWallet {
           mnemonic,
           createdAt: new Date().toISOString(),
         })
+        // Read the key back from Drive and confirm it round-trips BEFORE we ever
+        // show a fundable wallet. This is the safeguard against the old build's
+        // fatal bug, where a key could exist only in the session and vanish on
+        // refresh. Here the durable Drive file is the single source of truth.
+        const saved = await drive.loadWallet()
+        if (!saved || saved.mnemonic !== mnemonic) {
+          throw new Error(
+            'Your wallet was created but Google Drive did not confirm it saved. Please try again.',
+          )
+        }
         setAccount(acct)
         setJustCreated(true)
         setStatus('ready')

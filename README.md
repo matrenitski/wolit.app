@@ -23,6 +23,33 @@ backend**, so no one but you (via your Google account) can ever reach your key.
   [mempool.space](https://mempool.space) / Esplora API.
 - **Testnet-first:** runs on Bitcoin testnet by default (free practice coins).
 
+## FAQ
+
+**Can I open my wallet on another device or browser?**
+Yes. Your key lives in your Google Drive, not in any single browser. Sign in with the
+same Google account on any device and the app reads the same key — your Bitcoin is right
+there. Nothing is stored in the browser itself, so there's no local copy to get out of
+sync or lose.
+
+**What happens when my login session expires?**
+Nothing happens to your key. The Google sign-in token is short-lived and is only used to
+*read* your Drive; the key itself is a permanent file in your Drive's hidden app folder.
+When the token expires, the app simply asks Google for a new one and reads the same key.
+The key never changes and never depends on the session staying alive.
+
+**Why keep the key in Google Drive instead of on a server?**
+Because a server would have to be able to read your key in order to hand it back to you —
+which means whoever runs the server (or breaks into it) could take everyone's coins.
+Google Drive's hidden app folder gives the same "it follows me everywhere" convenience,
+but only *your* Google account can read it. There's no server in the loop, so there's no
+operator to trust and no central honeypot to steal. (This is the single biggest fix
+versus the earlier prototype, which routed plaintext keys through a server.)
+
+**So what could actually lose my coins?**
+Two things: losing access to your Google account, or that hidden Drive file being deleted —
+*and* not having a backup. That's why the app lets you download an encrypted backup you can
+keep anywhere. Do it once and you're covered.
+
 ## One-time setup: create a Google OAuth Client ID
 
 The app needs a Google **Client ID** to sign users in. This is free and the Client ID
