@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>wolit.app — previous version (archived)</title>
+    <meta name="robots" content="noindex" />
+    <meta
+      name="description"
+      content="An archived, non-functional snapshot of the previous version of wolit.app — an Ethereum stablecoin wallet."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #0a0e1a;
+        --muted-fg: #64748b;
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --border: #e2e8f0;
+        --muted-bg: #f1f5f9;
+        --destructive: #ef4444;
+        --radius: 0.75rem;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, sans-serif;
+        color: var(--fg);
+        background: var(--bg);
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--primary);
+      }
+      .gradient-bg {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      }
+      .container {
+        max-width: 80rem;
+        margin: 0 auto;
+        padding: 0 1.25rem;
+      }
+
+      /* Archive banner */
+      .archive {
+        background: #0a0e1a;
+        color: #e2e8f0;
+        font-size: 0.84rem;
+        padding: 9px 0;
+        text-align: center;
+      }
+      .archive a {
+        color: #93c5fd;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .archive a:hover {
+        text-decoration: underline;
+      }
+
+      /* Header */
+      header.site {
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(8px);
+      }
+      .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 0;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .logo-badge {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 1.1rem;
+      }
+      .logo-badge.sm {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 0.5rem;
+        font-size: 0.85rem;
+      }
+      .logo h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+      }
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      select.lang-select {
+        font-size: 0.85rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 0.4rem;
+        padding: 0.25rem 0.6rem;
+        color: var(--fg);
+        font-family: inherit;
+      }
+
+      /* Hero */
+      .hero {
+        text-align: center;
+        max-width: 56rem;
+        margin: 0 auto;
+        padding: 5rem 0 0;
+      }
+      .hero h2 {
+        font-size: clamp(2.25rem, 6vw, 3.75rem);
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+        margin: 0 0 1.5rem;
+      }
+      .hero p.sub {
+        font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+        color: var(--muted-fg);
+        max-width: 48rem;
+        margin: 0 auto 3rem;
+      }
+      .btn-google {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 600;
+        font-size: 1.125rem;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .btn-google:hover {
+        background: var(--primary-dark);
+      }
+      .hero .tagline {
+        margin-top: 2rem;
+        font-size: 0.875rem;
+        color: var(--muted-fg);
+      }
+
+      /* Features */
+      .features {
+        display: grid;
+        gap: 2rem;
+        margin: 5rem 0;
+      }
+      @media (min-width: 768px) {
+        .features {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+      .feature {
+        text-align: center;
+        padding: 1.5rem;
+      }
+      .feature .icon {
+        width: 4rem;
+        height: 4rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        color: #fff;
+      }
+      .feature h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+      }
+      .feature p {
+        color: var(--muted-fg);
+        margin: 0;
+      }
+
+      /* FAQ */
+      .faq {
+        max-width: 56rem;
+        margin: 8rem auto 5rem;
+      }
+      .faq > h2 {
+        font-size: 1.875rem;
+        font-weight: 700;
+        text-align: center;
+        margin: 0 0 3rem;
+      }
+      details {
+        border-bottom: 1px solid var(--border);
+      }
+      summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 1.25rem 0;
+        font-weight: 500;
+        font-size: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      summary::after {
+        content: '⌄';
+        color: var(--muted-fg);
+        font-size: 1.2rem;
+        transition: transform 0.2s;
+      }
+      details[open] summary::after {
+        transform: rotate(180deg);
+      }
+      .faq-a {
+        color: var(--muted-fg);
+        padding: 0 0 1.25rem;
+        line-height: 1.6;
+        white-space: pre-line;
+      }
+
+      /* Section label */
+      .section-label {
+        text-align: center;
+        margin: 2rem 0 1.5rem;
+        color: var(--muted-fg);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .section-label::before,
+      .section-label::after {
+        content: '';
+        display: inline-block;
+        width: 3rem;
+        height: 1px;
+        background: var(--border);
+        vertical-align: middle;
+        margin: 0 0.75rem;
+      }
+
+      /* Dashboard mockup */
+      .dash {
+        background: #f8fafc;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 3rem;
+      }
+      .dash-header {
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.6);
+      }
+      .avatar {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        background: #3b82f6;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+      .user-name {
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+      .btn-ghost {
+        background: none;
+        border: none;
+        color: var(--fg);
+        font: inherit;
+        font-size: 0.9rem;
+        cursor: pointer;
+        padding: 0.4rem 0.6rem;
+        border-radius: 0.4rem;
+      }
+      .btn-ghost:hover {
+        background: var(--muted-bg);
+      }
+      .balance-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        padding: 2rem;
+        text-align: center;
+        margin: 2rem 0 1.5rem;
+      }
+      .balance-card .label {
+        font-size: 0.875rem;
+        color: var(--muted-fg);
+        margin-bottom: 0.5rem;
+      }
+      .balance-card .amount {
+        font-size: clamp(2.25rem, 6vw, 3rem);
+        font-weight: 700;
+        margin-bottom: 1rem;
+      }
+      .balance-card .addr {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        color: var(--muted-fg);
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+      }
+      .balance-card .addr .copy {
+        color: var(--primary);
+        cursor: pointer;
+      }
+      .dash-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        max-width: 28rem;
+        margin: 0 auto;
+      }
+      .btn-primary,
+      .btn-secondary {
+        flex: 1;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        border: none;
+        cursor: pointer;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: var(--primary-dark);
+      }
+      .btn-secondary {
+        background: var(--muted-bg);
+        color: var(--fg);
+      }
+      .grid-2 {
+        display: grid;
+        gap: 2rem;
+        margin-top: 2rem;
+      }
+      @media (min-width: 1024px) {
+        .grid-2 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .panel-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0 0 1.5rem;
+      }
+      .coin {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+      }
+      .coin-left {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .coin-icon {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 0.7rem;
+        color: #fff;
+      }
+      .coin-sym {
+        font-weight: 600;
+      }
+      .coin-name,
+      .coin-sub {
+        font-size: 0.85rem;
+        color: var(--muted-fg);
+      }
+      .coin-right {
+        text-align: right;
+      }
+      .coin-bal {
+        font-weight: 600;
+      }
+      .mica-head {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--primary);
+        margin: 1.5rem 0 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+      }
+      .tx-empty {
+        text-align: center;
+        color: var(--muted-fg);
+        padding: 3rem 1rem;
+        border: 1px dashed var(--border);
+        border-radius: 0.75rem;
+      }
+      .delete-row {
+        text-align: center;
+        border-top: 1px solid var(--border);
+        margin-top: 3rem;
+        padding-top: 2rem;
+      }
+      .btn-delete {
+        background: var(--destructive);
+        color: #fff;
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      footer.site {
+        text-align: center;
+        color: var(--muted-fg);
+        font-size: 0.8rem;
+        padding: 2rem 1rem 2.5rem;
+      }
+      .usdt-bg { background: #26a17b; }
+      .usdc-bg { background: #2775ca; }
+      .dai-bg { background: #f5ac37; }
+      .usdq-bg { background: #6366f1; }
+      .eurq-bg { background: #8b5cf6; }
+      .usdr-bg { background: #10b981; }
+      .eurr-bg { background: #f59e0b; }
+    </style>
+  </head>
+  <body>
+    <div class="archive">
+      📦 Archived snapshot of the <strong>previous</strong> wolit.app (an Ethereum stablecoin wallet) — not
+      functional. &nbsp;<a href="/">← Go to the current Bitcoin wallet</a>
+    </div>
+
+    <!-- ===================== LANDING ===================== -->
+    <header class="site">
+      <div class="container header-row">
+        <div class="logo">
+          <div class="logo-badge gradient-bg">W</div>
+          <h1>wolit.app</h1>
+        </div>
+        <div class="header-right">
+          <select class="lang-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+            <option value="ru">Русский</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="hero">
+        <h2 data-i18n="heroTitle">The Simplest Stablecoin Wallet in the World</h2>
+        <p class="sub" data-i18n="heroSubtitle">
+          Start using Stablecoins in 2 clicks. Access your EUR and USD stablecoins from any device with
+          Google authentication.
+        </p>
+        <button class="btn-google" type="button">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+          </svg>
+          <span data-i18n="heroButton">Open your wallet with Google</span>
+        </button>
+        <div class="tagline" data-i18n="heroTagline">No seed phrases • No downloads • Cross-device access</div>
+      </section>
+
+      <section class="features">
+        <div class="feature">
+          <div class="icon gradient-bg">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 data-i18n="featureSecurityTitle">Google Security</h3>
+          <p data-i18n="featureSecurityDesc">Your wallet is protected by Google's enterprise-grade security. No complex passwords to remember.</p>
+        </div>
+        <div class="feature">
+          <div class="icon gradient-bg">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
+          </div>
+          <h3 data-i18n="featureMiCATitle">MiCA Compliant</h3>
+          <p data-i18n="featureMiCADesc">Access both traditional and European regulated stablecoins (USDQ, EURQ, USDR, EURR).</p>
+        </div>
+        <div class="feature">
+          <div class="icon gradient-bg">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+          </div>
+          <h3 data-i18n="featureCrossDeviceTitle">Cross-Device</h3>
+          <p data-i18n="featureCrossDeviceDesc">Access your wallet from any device. Your stablecoins are available wherever you sign in.</p>
+        </div>
+      </section>
+
+      <section class="faq">
+        <h2 data-i18n="faqTitle">Frequently Asked Questions</h2>
+        <details open>
+          <summary data-i18n="faq1Q">How does wolit.app keep my wallet secure?</summary>
+          <div class="faq-a" data-i18n="faq1A">Your private key is stored in a hidden, app-specific folder in your Google Drive (appDataFolder). This folder is invisible to you and can only be accessed by wolit.app. It syncs automatically across all your devices when you sign in with the same Google account. The wallet is protected by Google's enterprise-grade security infrastructure.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq2Q">What stablecoins are supported?</summary>
+          <div class="faq-a" data-i18n="faq2A">wolit.app supports major USD and EUR stablecoins on the Ethereum network:
+• Traditional stablecoins: USDT, USDC, DAI
+• MiCA-compliant European stablecoins: USDQ, EURQ, USDR, EURR
+All balances are fetched in real-time from the Ethereum blockchain.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq3Q">Do I need to remember a seed phrase?</summary>
+          <div class="faq-a" data-i18n="faq3A">No! That's the beauty of wolit.app. Your wallet is tied to your Google account, so you don't need to remember or store any seed phrases. Simply sign in with Google from any device to access your wallet. If you want to backup your private key manually, you can view and copy it from the wallet dashboard.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq4Q">Can I access my wallet from multiple devices?</summary>
+          <div class="faq-a" data-i18n="faq4A">Yes! Your wallet automatically syncs across all devices where you sign in with the same Google account. Whether you're on your phone, tablet, or computer, your stablecoins are always accessible. The private key is securely stored in your Google Drive's hidden application folder.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq5Q">What happens if I delete my wallet?</summary>
+          <div class="faq-a" data-i18n="faq5A">If you delete your wallet using the "Delete Wallet" button in the dashboard, your private key will be permanently removed from Google Drive storage. This action cannot be undone, and any remaining funds in that wallet will become inaccessible forever. Always transfer your funds to another wallet before deleting. After deletion, you can create a new wallet from scratch.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq6Q">Is wolit.app free to use?</summary>
+          <div class="faq-a" data-i18n="faq6A">Yes, wolit.app is completely free to use. There are no subscription fees or hidden charges. You only pay the standard Ethereum network gas fees when sending transactions, which go directly to the Ethereum network validators, not to wolit.app.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq7Q">Can I use wolit.app with a business Google account?</summary>
+          <div class="faq-a" data-i18n="faq7A">Yes, wolit.app works with both personal and business Google accounts (Google Workspace/G Suite). We use a non-sensitive OAuth scope that doesn't require special permissions. However, if your organization has strict policies that block third-party Drive access, you may need to contact your IT administrator to allow wolit.app.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq8Q">How do I send stablecoins?</summary>
+          <div class="faq-a" data-i18n="faq8A">Sending stablecoins is simple:
+1. Click the "Send" button in your wallet dashboard
+2. Select the stablecoin you want to send
+3. Enter the recipient's Ethereum address
+4. Enter the amount to send
+5. Review and confirm the transaction
+The transaction will be broadcast to the Ethereum network and typically confirms within a few minutes.</div>
+        </details>
+        <details>
+          <summary data-i18n="faq9Q">Can I export my private key?</summary>
+          <div class="faq-a" data-i18n="faq9A">Yes, you can view and copy your private key from the wallet dashboard at any time. This allows you to import your wallet into other Ethereum wallet applications if needed. Remember to keep your private key secure and never share it with anyone, as it provides complete control over your wallet and funds.</div>
+        </details>
+      </section>
+    </main>
+
+    <!-- ===================== DASHBOARD MOCKUP ===================== -->
+    <div class="section-label">How the wallet looked once signed in</div>
+    <div class="dash">
+      <div class="dash-header">
+        <div class="container header-row">
+          <div class="logo">
+            <div class="logo-badge sm gradient-bg">W</div>
+            <h1 style="font-size: 1.25rem">wolit.app</h1>
+          </div>
+          <div class="header-right">
+            <div style="display: flex; align-items: center; gap: 0.5rem">
+              <div class="avatar">M</div>
+              <span class="user-name">Max Matrenitski</span>
+            </div>
+            <select class="lang-select" aria-label="Language">
+              <option value="en">English</option>
+              <option value="de">Deutsch</option>
+              <option value="ru">Русский</option>
+              <option value="es">Español</option>
+              <option value="fr">Français</option>
+            </select>
+            <button class="btn-ghost" type="button">Sign Out</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="balance-card">
+          <div class="label">Total Balance</div>
+          <div class="amount">$1,751.50</div>
+          <div class="addr">
+            <span>0x71C7…976F</span>
+            <span class="copy" title="Copy">⧉</span>
+          </div>
+          <div class="dash-actions">
+            <button class="btn-primary" type="button">↑ Send</button>
+            <button class="btn-secondary" type="button">▦ Receive</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <h2 class="panel-title">Your Stablecoins</h2>
+            <div class="coin">
+              <div class="coin-left">
+                <span class="coin-icon usdt-bg">₮</span>
+                <div><div class="coin-sym">USDT</div><div class="coin-name">Tether USD</div></div>
+              </div>
+              <div class="coin-right"><div class="coin-bal">$1,000.50</div><div class="coin-sub">1000.50 USDT</div></div>
+            </div>
+            <div class="coin">
+              <div class="coin-left">
+                <span class="coin-icon usdc-bg">$</span>
+                <div><div class="coin-sym">USDC</div><div class="coin-name">USD Coin</div></div>
+              </div>
+              <div class="coin-right"><div class="coin-bal">$500.75</div><div class="coin-sub">500.75 USDC</div></div>
+            </div>
+            <div class="coin">
+              <div class="coin-left">
+                <span class="coin-icon dai-bg">◈</span>
+                <div><div class="coin-sym">DAI</div><div class="coin-name">MakerDAO</div></div>
+              </div>
+              <div class="coin-right"><div class="coin-bal">$250.25</div><div class="coin-sub">250.25 DAI</div></div>
+            </div>
+
+            <div class="mica-head">MiCA-Compliant European Stablecoins</div>
+            <div class="coin">
+              <div class="coin-left">
+                <span class="coin-icon usdq-bg">Q$</span>
+                <div><div class="coin-sym">USDQ</div><div class="coin-name">Quantoz USD</div></div>
+              </div>
+              <div class="coin-right"><div class="coin-bal">$0.00</div><div class="coin-sub">0 USDQ</div></div>
+            </div>
+            <div class="coin">
+              <div class="coin-left">
+                <span class="coin-icon eurq-bg">Q€</span>
+                <div><div class="coin-sym">EURQ</div><div class="coin-name">Quantoz EUR</div></div>
+              </div>
+              <div class="coin-right"><div class="coin-bal">€0.00</div><div class="coin-sub">0 EURQ</div></div>
+            </div>
+            <div class="coin">
+              <div class="coin-left">
+                <span class="coin-icon usdr-bg">R$</span>
+                <div><div class="coin-sym">USDR</div><div class="coin-name">StablR USD</div></div>
+              </div>
+              <div class="coin-right"><div class="coin-bal">$0.00</div><div class="coin-sub">0 USDR</div></div>
+            </div>
+            <div class="coin">
+              <div class="coin-left">
+                <span class="coin-icon eurr-bg">R€</span>
+                <div><div class="coin-sym">EURR</div><div class="coin-name">StablR EUR</div></div>
+              </div>
+              <div class="coin-right"><div class="coin-bal">€0.00</div><div class="coin-sub">0 EURR</div></div>
+            </div>
+          </div>
+
+          <div>
+            <h2 class="panel-title">Transaction History</h2>
+            <div class="tx-empty">No transactions yet</div>
+          </div>
+        </div>
+
+        <div class="delete-row">
+          <button class="btn-delete" type="button">🗑 Delete Wallet</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="site">
+      Archived visual snapshot of a previous version of wolit.app (Ethereum stablecoin wallet). Non-functional.
+      <br />The current product is a Bitcoin wallet at <a href="/">wolit.app</a>.
+    </footer>
+
+    <script>
+      // Faithful 5-language switch for the landing copy (the old app's marketing page
+      // was multilingual). Data transcribed from the original translations file.
+      const I18N = {
+        en: {},
+        de: {
+          heroTitle: 'Die einfachste Stablecoin-Wallet der Welt',
+          heroSubtitle:
+            'Beginnen Sie mit Stablecoins in 2 Klicks. Greifen Sie von jedem Gerät mit Google-Authentifizierung auf Ihre EUR- und USD-Stablecoins zu.',
+          heroButton: 'Öffnen Sie Ihre Wallet mit Google',
+          heroTagline: 'Keine Seed-Phrasen • Keine Downloads • Geräteübergreifender Zugriff',
+          featureSecurityTitle: 'Google-Sicherheit',
+          featureSecurityDesc:
+            'Ihre Wallet ist durch die erstklassige Sicherheit von Google geschützt. Keine komplexen Passwörter zu merken.',
+          featureMiCATitle: 'MiCA-konform',
+          featureMiCADesc:
+            'Zugriff auf traditionelle und europäisch regulierte Stablecoins (USDQ, EURQ, USDR, EURR).',
+          featureCrossDeviceTitle: 'Geräteübergreifend',
+          featureCrossDeviceDesc:
+            'Greifen Sie von jedem Gerät auf Ihre Wallet zu. Ihre Stablecoins sind verfügbar, wo immer Sie sich anmelden.',
+          faqTitle: 'Häufig gestellte Fragen',
+          faq1Q: 'Wie schützt wolit.app meine Wallet?',
+          faq1A: 'Ihr privater Schlüssel wird in einem versteckten, app-spezifischen Ordner in Ihrem Google Drive (appDataFolder) gespeichert. Dieser Ordner ist für Sie unsichtbar und kann nur von wolit.app zugegriffen werden.',
+          faq2Q: 'Welche Stablecoins werden unterstützt?',
+          faq2A: 'wolit.app unterstützt große USD- und EUR-Stablecoins im Ethereum-Netzwerk:\n• Traditionelle Stablecoins: USDT, USDC, DAI\n• MiCA-konforme europäische Stablecoins: USDQ, EURQ, USDR, EURR',
+          faq3Q: 'Muss ich mir eine Seed-Phrase merken?',
+          faq3A: 'Nein! Das ist das Schöne an wolit.app. Ihre Wallet ist an Ihr Google-Konto gebunden, sodass Sie sich keine Seed-Phrasen merken oder speichern müssen.',
+          faq4Q: 'Kann ich von mehreren Geräten auf meine Wallet zugreifen?',
+          faq4A: 'Ja! Ihre Wallet synchronisiert sich automatisch über alle Geräte, auf denen Sie sich mit demselben Google-Konto anmelden.',
+          faq5Q: 'Was passiert, wenn ich meine Wallet lösche?',
+          faq5A: 'Wenn Sie Ihre Wallet über die Schaltfläche "Wallet löschen" im Dashboard löschen, wird Ihr privater Schlüssel dauerhaft aus dem Google Drive-Speicher entfernt.',
+          faq6Q: 'Ist wolit.app kostenlos?',
+          faq6A: 'Ja, wolit.app ist völlig kostenlos zu verwenden. Es gibt keine Abonnementgebühren oder versteckte Kosten.',
+          faq7Q: 'Kann ich wolit.app mit einem geschäftlichen Google-Konto verwenden?',
+          faq7A: 'Ja, wolit.app funktioniert sowohl mit persönlichen als auch mit geschäftlichen Google-Konten (Google Workspace/G Suite).',
+          faq8Q: 'Wie sende ich Stablecoins?',
+          faq8A: 'Das Senden von Stablecoins ist einfach:\n1. Klicken Sie auf "Senden" in Ihrem Wallet-Dashboard\n2. Wählen Sie den Stablecoin aus\n3. Geben Sie die Ethereum-Adresse des Empfängers ein\n4. Geben Sie den Betrag ein\n5. Überprüfen und bestätigen Sie die Transaktion',
+          faq9Q: 'Kann ich meinen privaten Schlüssel exportieren?',
+          faq9A: 'Ja, Sie können Ihren privaten Schlüssel jederzeit vom Wallet-Dashboard anzeigen und kopieren.',
+        },
+        ru: {
+          heroTitle: 'Самый простой кошелек для стейблкоинов в мире',
+          heroSubtitle:
+            'Начните использовать стейблкоины за 2 клика. Получите доступ к вашим EUR и USD стейблкоинам с любого устройства через Google.',
+          heroButton: 'Откройте кошелек через Google',
+          heroTagline: 'Без сид-фраз • Без загрузок • Доступ с любого устройства',
+          featureSecurityTitle: 'Безопасность Google',
+          featureSecurityDesc:
+            'Ваш кошелек защищен корпоративной безопасностью Google. Не нужно запоминать сложные пароли.',
+          featureMiCATitle: 'Соответствие MiCA',
+          featureMiCADesc:
+            'Доступ к традиционным и европейским регулируемым стейблкоинам (USDQ, EURQ, USDR, EURR).',
+          featureCrossDeviceTitle: 'Кроссплатформенность',
+          featureCrossDeviceDesc:
+            'Доступ к кошельку с любого устройства. Ваши стейблкоины доступны везде, где вы входите.',
+          faqTitle: 'Часто задаваемые вопросы',
+          faq1Q: 'Как wolit.app защищает мой кошелек?',
+          faq1A: 'Ваш приватный ключ хранится в скрытой папке приложения в Google Drive (appDataFolder). Эта папка невидима для вас и доступна только wolit.app.',
+          faq2Q: 'Какие стейблкоины поддерживаются?',
+          faq2A: 'wolit.app поддерживает основные USD и EUR стейблкоины в сети Ethereum:\n• Традиционные: USDT, USDC, DAI\n• Европейские MiCA: USDQ, EURQ, USDR, EURR',
+          faq3Q: 'Нужно ли запоминать сид-фразу?',
+          faq3A: 'Нет! В этом прелесть wolit.app. Ваш кошелек привязан к аккаунту Google, поэтому не нужно запоминать сид-фразы.',
+          faq4Q: 'Могу ли я получить доступ с нескольких устройств?',
+          faq4A: 'Да! Кошелек автоматически синхронизируется на всех устройствах, где вы входите с тем же аккаунтом Google.',
+          faq5Q: 'Что произойдет, если я удалю кошелек?',
+          faq5A: 'При удалении кошелька ваш приватный ключ будет навсегда удален из Google Drive. Это действие нельзя отменить.',
+          faq6Q: 'Бесплатен ли wolit.app?',
+          faq6A: 'Да, wolit.app полностью бесплатен. Нет абонентской платы или скрытых комиссий.',
+          faq7Q: 'Можно ли использовать с корпоративным Google?',
+          faq7A: 'Да, wolit.app работает как с личными, так и с корпоративными аккаунтами Google (Google Workspace/G Suite).',
+          faq8Q: 'Как отправить стейблкоины?',
+          faq8A: 'Отправка стейблкоинов проста:\n1. Нажмите "Отправить"\n2. Выберите стейблкоин\n3. Введите адрес получателя\n4. Введите сумму\n5. Подтвердите транзакцию',
+          faq9Q: 'Могу ли я экспортировать приватный ключ?',
+          faq9A: 'Да, вы можете просмотреть и скопировать приватный ключ из панели кошелька в любое время.',
+        },
+        es: {
+          heroTitle: 'La billetera de stablecoins más simple del mundo',
+          heroSubtitle:
+            'Comienza a usar stablecoins en 2 clics. Accede a tus stablecoins EUR y USD desde cualquier dispositivo con autenticación de Google.',
+          heroButton: 'Abre tu billetera con Google',
+          heroTagline: 'Sin frases semilla • Sin descargas • Acceso multidispositivo',
+          featureSecurityTitle: 'Seguridad de Google',
+          featureSecurityDesc:
+            'Tu billetera está protegida por la seguridad empresarial de Google. Sin contraseñas complejas para recordar.',
+          featureMiCATitle: 'Compatible con MiCA',
+          featureMiCADesc:
+            'Accede a stablecoins tradicionales y reguladas europeas (USDQ, EURQ, USDR, EURR).',
+          featureCrossDeviceTitle: 'Multidispositivo',
+          featureCrossDeviceDesc:
+            'Accede a tu billetera desde cualquier dispositivo. Tus stablecoins están disponibles donde sea que inicies sesión.',
+          faqTitle: 'Preguntas frecuentes',
+          faq1Q: '¿Cómo protege wolit.app mi billetera?',
+          faq1A: 'Tu clave privada se almacena en una carpeta oculta específica de la aplicación en Google Drive (appDataFolder). Esta carpeta es invisible para ti y solo wolit.app puede acceder.',
+          faq2Q: '¿Qué stablecoins son compatibles?',
+          faq2A: 'wolit.app soporta las principales stablecoins USD y EUR en Ethereum:\n• Tradicionales: USDT, USDC, DAI\n• Europeas MiCA: USDQ, EURQ, USDR, EURR',
+          faq3Q: '¿Necesito recordar una frase semilla?',
+          faq3A: '¡No! Esa es la belleza de wolit.app. Tu billetera está vinculada a tu cuenta de Google, no necesitas recordar frases semilla.',
+          faq4Q: '¿Puedo acceder desde múltiples dispositivos?',
+          faq4A: '¡Sí! Tu billetera se sincroniza automáticamente en todos los dispositivos donde inicies sesión con la misma cuenta de Google.',
+          faq5Q: '¿Qué pasa si elimino mi billetera?',
+          faq5A: 'Si eliminas tu billetera, tu clave privada será eliminada permanentemente de Google Drive. Esta acción no se puede deshacer.',
+          faq6Q: '¿Es gratis wolit.app?',
+          faq6A: 'Sí, wolit.app es completamente gratis. No hay tarifas de suscripción ni cargos ocultos.',
+          faq7Q: '¿Puedo usar wolit.app con una cuenta empresarial?',
+          faq7A: 'Sí, wolit.app funciona con cuentas personales y empresariales de Google (Google Workspace/G Suite).',
+          faq8Q: '¿Cómo envío stablecoins?',
+          faq8A: 'Enviar stablecoins es simple:\n1. Haz clic en "Enviar"\n2. Selecciona el stablecoin\n3. Ingresa la dirección del destinatario\n4. Ingresa el monto\n5. Confirma la transacción',
+          faq9Q: '¿Puedo exportar mi clave privada?',
+          faq9A: 'Sí, puedes ver y copiar tu clave privada desde el panel de la billetera en cualquier momento.',
+        },
+        fr: {
+          heroTitle: 'Le portefeuille de stablecoins le plus simple au monde',
+          heroSubtitle:
+            "Commencez à utiliser les stablecoins en 2 clics. Accédez à vos stablecoins EUR et USD depuis n'importe quel appareil avec l'authentification Google.",
+          heroButton: 'Ouvrez votre portefeuille avec Google',
+          heroTagline: 'Pas de phrases de récupération • Pas de téléchargements • Accès multi-appareils',
+          featureSecurityTitle: 'Sécurité Google',
+          featureSecurityDesc:
+            "Votre portefeuille est protégé par la sécurité d'entreprise de Google. Pas de mots de passe complexes à retenir.",
+          featureMiCATitle: 'Conforme MiCA',
+          featureMiCADesc:
+            'Accédez aux stablecoins traditionnels et européens réglementés (USDQ, EURQ, USDR, EURR).',
+          featureCrossDeviceTitle: 'Multi-appareils',
+          featureCrossDeviceDesc:
+            "Accédez à votre portefeuille depuis n'importe quel appareil. Vos stablecoins sont disponibles partout où vous vous connectez.",
+          faqTitle: 'Questions fréquemment posées',
+          faq1Q: 'Comment wolit.app protège-t-il mon portefeuille?',
+          faq1A: "Votre clé privée est stockée dans un dossier caché spécifique à l'application dans Google Drive (appDataFolder). Ce dossier est invisible et seul wolit.app peut y accéder.",
+          faq2Q: 'Quels stablecoins sont pris en charge?',
+          faq2A: 'wolit.app prend en charge les principaux stablecoins USD et EUR sur Ethereum:\n• Traditionnels: USDT, USDC, DAI\n• Européens MiCA: USDQ, EURQ, USDR, EURR',
+          faq3Q: 'Dois-je me souvenir d’une phrase de récupération?',
+          faq3A: "Non! C'est la beauté de wolit.app. Votre portefeuille est lié à votre compte Google, pas besoin de phrases de récupération.",
+          faq4Q: 'Puis-je accéder depuis plusieurs appareils?',
+          faq4A: 'Oui! Votre portefeuille se synchronise automatiquement sur tous les appareils où vous vous connectez avec le même compte Google.',
+          faq5Q: 'Que se passe-t-il si je supprime mon portefeuille?',
+          faq5A: 'Si vous supprimez votre portefeuille, votre clé privée sera définitivement supprimée de Google Drive. Cette action est irréversible.',
+          faq6Q: 'wolit.app est-il gratuit?',
+          faq6A: "Oui, wolit.app est entièrement gratuit. Il n'y a pas de frais d'abonnement ni de coûts cachés.",
+          faq7Q: 'Puis-je utiliser avec un compte Google professionnel?',
+          faq7A: 'Oui, wolit.app fonctionne avec les comptes Google personnels et professionnels (Google Workspace/G Suite).',
+          faq8Q: 'Comment envoyer des stablecoins?',
+          faq8A: 'Envoyer des stablecoins est simple:\n1. Cliquez sur "Envoyer"\n2. Sélectionnez le stablecoin\n3. Entrez l’adresse du destinataire\n4. Entrez le montant\n5. Confirmez la transaction',
+          faq9Q: 'Puis-je exporter ma clé privée?',
+          faq9A: 'Oui, vous pouvez voir et copier votre clé privée depuis le tableau de bord du portefeuille à tout moment.',
+        },
+      };
+      // Snapshot the original English text straight from the DOM.
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        I18N.en[el.getAttribute('data-i18n')] = el.textContent;
+      });
+      function applyLang(lang) {
+        const t = I18N[lang] || I18N.en;
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const k = el.getAttribute('data-i18n');
+          if (t[k] != null) el.textContent = t[k];
+        });
+        document.documentElement.lang = lang;
+      }
+      document.querySelectorAll('.lang-select').forEach((sel) => {
+        sel.addEventListener('change', (e) => {
+          const lang = e.target.value;
+          document.querySelectorAll('.lang-select').forEach((s) => (s.value = lang));
+          applyLang(lang);
+        });
+      });
+    </script>
+  </body>
+</html>
