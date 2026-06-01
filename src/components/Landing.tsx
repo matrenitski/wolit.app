@@ -1,4 +1,5 @@
 import { GOOGLE_CLIENT_ID, type NetworkName } from '../config'
+import type { ChosenAccount } from '../lib/googleDrive'
 
 function GoogleG() {
   return (
@@ -16,14 +17,18 @@ export function Landing({
   busy,
   statusLabel,
   error,
+  chosenAccount,
   onSignIn,
+  onContinueAs,
   onRetry,
 }: {
   network: NetworkName
   busy: boolean
   statusLabel: string
   error: string | null
+  chosenAccount: ChosenAccount | null
   onSignIn: () => void
+  onContinueAs: () => void
   onRetry: () => void
 }) {
   const configured = !!GOOGLE_CLIENT_ID
@@ -36,8 +41,8 @@ export function Landing({
       <p className="tagline">the simplest Bitcoin wallet</p>
 
       <p className="muted mt-16">
-        Sign in with Google and your wallet is ready. Your private key is created in your browser
-        and saved to your own Google&nbsp;Drive — nothing to write down, no password to forget.
+        Choose your Google account to continue. Your private key is created in your browser and saved
+        to your own Google&nbsp;Drive — nothing to write down, no password to forget.
       </p>
 
       {!configured ? (
@@ -45,6 +50,25 @@ export function Landing({
           <strong>Setup needed.</strong> This app has no Google Client ID yet. Add{' '}
           <code>VITE_GOOGLE_CLIENT_ID</code> to <code>.env.local</code> and reload — see the README.
         </div>
+      ) : chosenAccount ? (
+        <>
+          <button className="btn btn-google mt-16" onClick={onContinueAs} disabled={busy}>
+            {busy ? (
+              <>
+                <span className="spinner" /> {statusLabel}
+              </>
+            ) : (
+              <>
+                <GoogleG /> Continue as {chosenAccount.name || chosenAccount.email}
+              </>
+            )}
+          </button>
+          <div className="center mt-8">
+            <button className="muted-link" onClick={onSignIn} disabled={busy}>
+              Use another account
+            </button>
+          </div>
+        </>
       ) : (
         <button className="btn btn-google mt-16" onClick={onSignIn} disabled={busy}>
           {busy ? (

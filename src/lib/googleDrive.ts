@@ -31,8 +31,11 @@ export function isSignedIn(): boolean {
   return !!accessToken && Date.now() < tokenExpiry
 }
 
-/** Interactive Google authorization for the drive.appdata scope. Must be called from a click. */
-export function signIn(prompt: '' | 'consent' | 'select_account' = ''): Promise<string> {
+/** Low-level: request a Drive access token, optionally targeting a specific account. */
+function tokenRequest(opts: {
+  prompt: '' | 'consent' | 'select_account'
+  hint?: string
+}): Promise<string> {
   return new Promise((resolve, reject) => {
     if (!GOOGLE_CLIENT_ID) {
       reject(
@@ -49,6 +52,7 @@ export function signIn(prompt: '' | 'consent' | 'select_account' = ''): Promise<
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: DRIVE_SCOPE,
+      hint: opts.hint,
       callback: (resp) => {
         if (resp.error || !resp.access_token) {
           reject(new Error(resp.error_description || resp.error || 'Authorization failed.'))
@@ -58,19 +62,80 @@ export function signIn(prompt: '' | 'consent' | 'select_account' = ''): Promise<
         tokenExpiry = Date.now() + (resp.expires_in - 60) * 1000
         resolve(accessToken)
       },
-      error_callback: (err) =>
-        reject(new Error(err.message || 'Sign-in was cancelled.')),
+      error_callback: (err) => reject(new Error(err.message || 'Sign-in was cancelled.')),
     })
-    client.requestAccessToken({ prompt })
+    client.requestAccessToken({ prompt: opts.prompt })
   })
+}
+
+/** Interactive Google authorization (account chooser). Must be called from a click. */
+export function signIn(prompt: '' | 'consent' | 'select_account' = ''): Promise<string> {
+  return tokenRequest({ prompt })
+}
+
+/** Authorize Drive for a specific account silently (no popup); rejects if consent is required. */
+export function authorizeSilently(email: string): Promise<string> {
+  return tokenRequest({ prompt: '', hint: email })
+}
+
+/** Authorize Drive for a specific account, showing consent. Must be called from a click. */
+export function authorizeWithConsent(email: string): Promise<string> {
+  return tokenRequest({ prompt: 'consent', hint: email })
 }
 
 export function signOut(): void {
   if (accessToken && window.google?.accounts?.oauth2) {
     window.google.accounts.oauth2.revoke(accessToken)
   }
+  window.google?.accounts?.id?.disableAutoSelect()
   accessToken = null
   tokenExpiry = 0
+}
+
+// ---- Google One Tap / FedCM: show the list of Google accounts automatically ----
+export interface ChosenAccount {
+  email: string
+  name?: string
+}
+
+let oneTapInited = false
+
+function decodeJwtPayload(jwt: string): { email?: string; name?: string } {
+  try {
+    const b64 = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const json = decodeURIComponent(
+      atob(b64)
+        .split('')
+        .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join(''),
+    )
+    return JSON.parse(json)
+  } catch {
+    return {}
+  }
+}
+
+/** Show Google's account chooser (One Tap / FedCM) automatically. No-op if unavailable. */
+export function promptAccountChooser(onAccount: (a: ChosenAccount) => void): void {
+  if (!GOOGLE_CLIENT_ID || !window.google?.accounts?.id) return
+  if (!oneTapInited) {
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      auto_select: false,
+      cancel_on_tap_outside: false,
+      use_fedcm_for_prompt: true,
+      callback: (resp) => {
+        const p = decodeJwtPayload(resp.credential)
+        if (p.email) onAccount({ email: p.email, name: p.name })
+      },
+    })
+    oneTapInited = true
+  }
+  try {
+    window.google.accounts.id.prompt()
+  } catch {
+    /* If One Tap can't show, the fallback button remains available. */
+  }
 }
 
 async function token(): Promise<string> {

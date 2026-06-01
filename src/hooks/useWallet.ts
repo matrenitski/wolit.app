@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DEFAULT_NETWORK, type NetworkName } from '../config'
 import * as drive from '../lib/googleDrive'
+import type { ChosenAccount } from '../lib/googleDrive'
 import {
   createTransaction,
   deriveAccount,
@@ -42,7 +43,9 @@ export interface UseWallet {
   history: TxSummary[]
   refreshing: boolean
   justCreated: boolean
+  chosenAccount: ChosenAccount | null
   signIn: () => Promise<void>
+  continueWithChosen: () => Promise<void>
   retry: () => void
   refresh: () => Promise<void>
   buildTransaction: (toAddress: string, amountSats: number, sendMax: boolean) => Promise<BuiltTx>
@@ -62,8 +65,10 @@ export function useWallet(): UseWallet {
   const [history, setHistory] = useState<TxSummary[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [justCreated, setJustCreated] = useState(false)
+  const [chosenAccount, setChosenAccount] = useState<ChosenAccount | null>(null)
+  const oneTapStarted = useRef(false)
 
-  // Wait for the Google script before offering sign-in.
+  // Wait for the Google script, then offer sign-in.
   useEffect(() => {
     let cancelled = false
     drive
@@ -101,53 +106,87 @@ export function useWallet(): UseWallet {
     }
   }, [account, network])
 
-  // Load chain data once the wallet is ready.
   useEffect(() => {
     if (status === 'ready' && account) void refresh()
   }, [status, account, refresh])
 
+  // After a Drive token is obtained, load the existing wallet or create a new one.
+  const afterAuthorized = useCallback(async () => {
+    setChosenAccount(null)
+    setStatus('loadingWallet')
+    const file = await drive.loadWallet()
+    if (file) {
+      setAccount(deriveAccount(file.mnemonic, network))
+      setJustCreated(false)
+      setStatus('ready')
+      return
+    }
+    setStatus('creating')
+    const mnemonic = generateMnemonic()
+    const acct = deriveAccount(mnemonic, network)
+    await drive.saveWallet({
+      version: 1,
+      network,
+      mnemonic,
+      createdAt: new Date().toISOString(),
+    })
+    const saved = await drive.loadWallet()
+    if (!saved || saved.mnemonic !== mnemonic) {
+      throw new Error('Your wallet was created but Google Drive did not confirm it saved. Please try again.')
+    }
+    setAccount(acct)
+    setJustCreated(true)
+    setStatus('ready')
+  }, [network])
+
+  // The fallback button: full account chooser.
   const signIn = useCallback(async () => {
     try {
       setError(null)
+      setChosenAccount(null)
       setStatus('authorizing')
       await drive.signIn('select_account')
-
-      setStatus('loadingWallet')
-      const file = await drive.loadWallet()
-
-      if (file) {
-        setAccount(deriveAccount(file.mnemonic, network))
-        setJustCreated(false)
-        setStatus('ready')
-      } else {
-        setStatus('creating')
-        const mnemonic = generateMnemonic()
-        const acct = deriveAccount(mnemonic, network)
-        await drive.saveWallet({
-          version: 1,
-          network,
-          mnemonic,
-          createdAt: new Date().toISOString(),
-        })
-        // Read the key back from Drive and confirm it round-trips BEFORE we ever
-        // show a fundable wallet. This is the safeguard against the old build's
-        // fatal bug, where a key could exist only in the session and vanish on
-        // refresh. Here the durable Drive file is the single source of truth.
-        const saved = await drive.loadWallet()
-        if (!saved || saved.mnemonic !== mnemonic) {
-          throw new Error(
-            'Your wallet was created but Google Drive did not confirm it saved. Please try again.',
-          )
-        }
-        setAccount(acct)
-        setJustCreated(true)
-        setStatus('ready')
-      }
+      await afterAuthorized()
     } catch (e) {
       setError(errMsg(e))
       setStatus('error')
     }
-  }, [network])
+  }, [afterAuthorized])
+
+  // Continue with the account picked from the One Tap chooser (shows consent if needed).
+  const continueWithChosen = useCallback(async () => {
+    const acct = chosenAccount
+    if (!acct) return
+    try {
+      setError(null)
+      setStatus('authorizing')
+      await drive.authorizeWithConsent(acct.email)
+      await afterAuthorized()
+    } catch (e) {
+      setError(errMsg(e))
+      setStatus('error')
+    }
+  }, [chosenAccount, afterAuthorized])
+
+  // Auto-show the Google account chooser (One Tap) once we're ready for sign-in.
+  useEffect(() => {
+    if (status !== 'signedOut' || oneTapStarted.current) return
+    oneTapStarted.current = true
+    drive.promptAccountChooser(async (acct) => {
+      // The user picked an account from the list.
+      try {
+        setError(null)
+        setStatus('authorizing')
+        // Returning users (already granted Drive) get a token with no popup.
+        await drive.authorizeSilently(acct.email)
+        await afterAuthorized()
+      } catch {
+        // First-time / consent needed: surface a one-click "Continue as …".
+        setChosenAccount(acct)
+        setStatus('signedOut')
+      }
+    })
+  }, [status, afterAuthorized])
 
   const retry = useCallback(() => {
     setError(null)
@@ -169,7 +208,6 @@ export function useWallet(): UseWallet {
   const broadcast = useCallback(
     async (hex: string): Promise<string> => {
       const txid = await broadcastTx(network, hex)
-      // Give the explorer a moment to register the tx, then refresh balances.
       setTimeout(() => void refresh(), 1500)
       return txid
     },
@@ -182,6 +220,7 @@ export function useWallet(): UseWallet {
     setBalance(null)
     setHistory([])
     setJustCreated(false)
+    setChosenAccount(null)
     setError(null)
     setStatus('signedOut')
   }, [])
@@ -193,6 +232,7 @@ export function useWallet(): UseWallet {
     setBalance(null)
     setHistory([])
     setJustCreated(false)
+    setChosenAccount(null)
     setStatus('signedOut')
   }, [])
 
@@ -208,7 +248,9 @@ export function useWallet(): UseWallet {
     history,
     refreshing,
     justCreated,
+    chosenAccount,
     signIn,
+    continueWithChosen,
     retry,
     refresh,
     buildTransaction,

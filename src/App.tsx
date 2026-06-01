@@ -44,7 +44,9 @@ export default function App() {
             busy={busy}
             statusLabel={STATUS_LABEL[w.status] ?? 'Working…'}
             error={w.status === 'error' ? w.error : null}
+            chosenAccount={w.chosenAccount}
             onSignIn={w.signIn}
+            onContinueAs={w.continueWithChosen}
             onRetry={w.retry}
           />
         )}

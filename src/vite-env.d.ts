@@ -23,14 +23,33 @@ interface GoogleTokenClient {
   requestAccessToken: (overrideConfig?: { prompt?: string }) => void
 }
 
+interface GoogleCredentialResponse {
+  credential: string
+  select_by?: string
+}
+
 interface Window {
   google?: {
     accounts: {
+      id: {
+        initialize: (config: {
+          client_id: string
+          callback: (response: GoogleCredentialResponse) => void
+          auto_select?: boolean
+          cancel_on_tap_outside?: boolean
+          use_fedcm_for_prompt?: boolean
+          context?: string
+        }) => void
+        prompt: (listener?: (notification: unknown) => void) => void
+        cancel: () => void
+        disableAutoSelect: () => void
+      }
       oauth2: {
         initTokenClient: (config: {
           client_id: string
           scope: string
           prompt?: string
+          hint?: string
           callback: (response: GoogleTokenResponse) => void
           error_callback?: (error: { type: string; message?: string }) => void
         }) => GoogleTokenClient
