@@ -6,6 +6,11 @@ import type { NetworkName } from '../config'
 
 const bip32 = BIP32Factory(ecc)
 
+// Enable Taproot (bc1p…) addresses as send recipients. bitcoinjs-lib needs an ECC
+// backend to validate witness-v1 (P2TR) outputs; without this, sending to a bc1p
+// address throws "No ECC Library provided. You must call initEccLib()".
+bitcoin.initEccLib(ecc)
+
 export function getNetwork(net: NetworkName): bitcoin.networks.Network {
   return net === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet
 }
