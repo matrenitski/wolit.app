@@ -1,0 +1,17 @@
+{
+  "name": "wolit.app — Bitcoin wallet",
+  "short_name": "wolit.app",
+  "description": "The simplest Bitcoin wallet. Sign in with Google; your key lives in your own Google Drive.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0c10",
+  "theme_color": "#0a0c10",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Modal } from './Modal'
 import { EXPLORER_BASE, type NetworkName } from '../config'
-import { btcToSats, formatBtc } from '../lib/format'
+import { btcToSats, formatBtc, formatUsd } from '../lib/format'
 import type { BuiltTx } from '../lib/bitcoin'
 
 type Phase = 'form' | 'review' | 'done'
@@ -9,12 +9,14 @@ type Phase = 'form' | 'review' | 'done'
 export function SendModal({
   network,
   availableSats,
+  priceUsd,
   buildTransaction,
   broadcast,
   onClose,
 }: {
   network: NetworkName
   availableSats: number
+  priceUsd: number | null
   buildTransaction: (to: string, amountSats: number, sendMax: boolean) => Promise<BuiltTx>
   broadcast: (hex: string) => Promise<string>
   onClose: () => void
@@ -27,6 +29,10 @@ export function SendModal({
   const [err, setErr] = useState<string | null>(null)
   const [tx, setTx] = useState<BuiltTx | null>(null)
   const [txid, setTxid] = useState<string | null>(null)
+
+  const enteredSats = sendMax ? availableSats : btcToSats(amount)
+  const usdHint =
+    Number.isFinite(enteredSats) && enteredSats > 0 ? formatUsd(enteredSats, priceUsd) : null
 
   const review = async () => {
     setErr(null)
@@ -67,6 +73,16 @@ export function SendModal({
     }
   }
 
+  const amountRow = (label: string, sats: number, strong = false) => (
+    <div className={`review-row${strong ? ' total' : ''}`}>
+      <span>{label}</span>
+      <span className="review-val">
+        <strong>{formatBtc(sats)} BTC</strong>
+        {formatUsd(sats, priceUsd) && <em>{formatUsd(sats, priceUsd)}</em>}
+      </span>
+    </div>
+  )
+
   return (
     <Modal title="Send Bitcoin" onClose={onClose}>
       {phase === 'form' && (
@@ -79,6 +95,7 @@ export function SendModal({
               onChange={(e) => setTo(e.target.value)}
               placeholder={network === 'testnet' ? 'tb1…' : 'bc1…'}
               spellCheck={false}
+              autoComplete="off"
             />
           </div>
           <div className="field">
@@ -94,6 +111,7 @@ export function SendModal({
               inputMode="decimal"
               disabled={sendMax}
             />
+            {usdHint && <div className="usd-hint">≈ {usdHint}</div>}
             <label className="checkbox mt-8">
               <input
                 type="checkbox"
@@ -113,22 +131,13 @@ export function SendModal({
       {phase === 'review' && tx && (
         <>
           <div className="review">
-            <div className="review-row">
-              <span>Sending</span>
-              <strong>{formatBtc(tx.amount)} BTC</strong>
-            </div>
+            {amountRow('Sending', tx.amount)}
             <div className="review-row">
               <span>To</span>
-              <span className="mono small">{to.trim()}</span>
+              <span className="mono small break to-addr">{to.trim()}</span>
             </div>
-            <div className="review-row">
-              <span>Network fee</span>
-              <span>{formatBtc(tx.fee)} BTC</span>
-            </div>
-            <div className="review-row total">
-              <span>Total</span>
-              <strong>{formatBtc(tx.amount + tx.fee)} BTC</strong>
-            </div>
+            {amountRow('Network fee', tx.fee)}
+            {amountRow('Total', tx.amount + tx.fee, true)}
           </div>
           {err && <div className="banner error mt-8">{err}</div>}
           <div className="btn-row">

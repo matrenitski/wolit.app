@@ -41,6 +41,18 @@ export async function fetchFeeRate(net: NetworkName): Promise<number> {
   return net === 'mainnet' ? 8 : 1
 }
 
+/** Current BTC price in USD from mempool.space, or null if unavailable. */
+export async function fetchPriceUsd(): Promise<number | null> {
+  try {
+    const res = await fetch('https://mempool.space/api/v1/prices')
+    if (!res.ok) return null
+    const j = await res.json()
+    return typeof j.USD === 'number' && j.USD > 0 ? j.USD : null
+  } catch {
+    return null
+  }
+}
+
 export async function broadcastTx(net: NetworkName, hex: string): Promise<string> {
   const res = await fetch(`${base(net)}/tx`, {
     method: 'POST',

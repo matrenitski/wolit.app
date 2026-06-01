@@ -11,27 +11,7 @@ const STATUS_LABEL: Partial<Record<Status, string>> = {
 
 export default function App() {
   const w = useWallet()
-
-  if (w.status === 'ready' && w.account) {
-    return (
-      <div className="screen top">
-        <WalletHome
-          account={w.account}
-          network={w.network}
-          balance={w.balance}
-          history={w.history}
-          refreshing={w.refreshing}
-          justCreated={w.justCreated}
-          buildTransaction={w.buildTransaction}
-          broadcast={w.broadcast}
-          onRefresh={w.refresh}
-          onSignOut={w.signOut}
-          onDelete={w.deleteWallet}
-          dismissJustCreated={w.dismissJustCreated}
-        />
-      </div>
-    )
-  }
+  const ready = w.status === 'ready' && !!w.account
 
   const busy =
     w.status === 'init' ||
@@ -40,15 +20,36 @@ export default function App() {
     w.status === 'creating'
 
   return (
-    <div className="screen">
-      <Landing
-        network={w.network}
-        busy={busy}
-        statusLabel={STATUS_LABEL[w.status] ?? 'Working…'}
-        error={w.status === 'error' ? w.error : null}
-        onSignIn={w.signIn}
-        onRetry={w.retry}
-      />
+    <div className={`screen${ready ? ' top' : ''}`}>
+      <main className="screen-main">
+        {w.status === 'ready' && w.account ? (
+          <WalletHome
+            account={w.account}
+            network={w.network}
+            balance={w.balance}
+            priceUsd={w.priceUsd}
+            history={w.history}
+            refreshing={w.refreshing}
+            justCreated={w.justCreated}
+            buildTransaction={w.buildTransaction}
+            broadcast={w.broadcast}
+            onRefresh={w.refresh}
+            onSignOut={w.signOut}
+            onDelete={w.deleteWallet}
+            dismissJustCreated={w.dismissJustCreated}
+          />
+        ) : (
+          <Landing
+            network={w.network}
+            busy={busy}
+            statusLabel={STATUS_LABEL[w.status] ?? 'Working…'}
+            error={w.status === 'error' ? w.error : null}
+            onSignIn={w.signIn}
+            onRetry={w.retry}
+          />
+        )}
+      </main>
+      <footer className="copyright">© Max Matrenitski 2025–2026</footer>
     </div>
   )
 }

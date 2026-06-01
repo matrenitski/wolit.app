@@ -14,6 +14,7 @@ import {
   fetchHistory,
   fetchUtxos,
   broadcastTx,
+  fetchPriceUsd,
   type AddressStats,
   type TxSummary,
 } from '../lib/esplora'
@@ -37,6 +38,7 @@ export interface UseWallet {
   network: NetworkName
   account: DerivedAccount | null
   balance: AddressStats | null
+  priceUsd: number | null
   history: TxSummary[]
   refreshing: boolean
   justCreated: boolean
@@ -56,6 +58,7 @@ export function useWallet(): UseWallet {
   const [error, setError] = useState<string | null>(null)
   const [account, setAccount] = useState<DerivedAccount | null>(null)
   const [balance, setBalance] = useState<AddressStats | null>(null)
+  const [priceUsd, setPriceUsd] = useState<number | null>(null)
   const [history, setHistory] = useState<TxSummary[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [justCreated, setJustCreated] = useState(false)
@@ -83,12 +86,14 @@ export function useWallet(): UseWallet {
     if (!account) return
     setRefreshing(true)
     try {
-      const [bal, hist] = await Promise.all([
+      const [bal, hist, price] = await Promise.all([
         fetchBalance(network, account.address),
         fetchHistory(network, account.address).catch(() => [] as TxSummary[]),
+        fetchPriceUsd().catch(() => null),
       ])
       setBalance(bal)
       setHistory(hist)
+      setPriceUsd(price)
     } catch {
       // Keep whatever we had; a transient explorer hiccup shouldn't blank the UI.
     } finally {
@@ -199,6 +204,7 @@ export function useWallet(): UseWallet {
     network,
     account,
     balance,
+    priceUsd,
     history,
     refreshing,
     justCreated,
