@@ -85,8 +85,8 @@ export function Landing({
       <p className="tagline">the simplest Bitcoin wallet</p>
 
       <div className="uvp-badges">
-        <span className="uvp">100% client-side</span>
         <span className="uvp">No servers</span>
+        <span className="uvp">Your keys, your coins</span>
         <a
           className="uvp uvp-link"
           href="https://github.com/matrenitski/wolit.app"
@@ -98,7 +98,7 @@ export function Landing({
       </div>
 
       <p className="value-line">
-        Your keys live in <strong>your</strong> Google account — so your money is only yours.
+        Just your <strong>Google account</strong> — no password to lose, no seed phrase to write down.
       </p>
 
       {!configured ? (
