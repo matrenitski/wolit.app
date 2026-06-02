@@ -55,16 +55,9 @@ public class MainActivity extends AppCompatActivity {
     private DriveStore.WalletFile walletFile; // the raw stored record (for backups)
     private boolean menuVisible = false;
 
-    // Launches Google's consent screen when authorization needs interaction.
-    private final ActivityResultLauncher<IntentSenderRequest> authLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    GoogleAuth.handleResult(this, result.getData(), authCallback);
-                } else {
-                    showSignIn();
-                }
-            });
-
+    // Declared before authLauncher: this anonymous class may reference the (later)
+    // launcher field — anonymous-class bodies are exempt from Java's forward-reference
+    // rule — whereas the launcher's lambda initializer is not, so it must come second.
     private final GoogleAuth.Callback authCallback = new GoogleAuth.Callback() {
         @Override public void onToken(String token) { openWallet(); }
         @Override public void onNeedsConsent(android.app.PendingIntent pi) {
@@ -78,6 +71,16 @@ public class MainActivity extends AppCompatActivity {
             showError(message(e), MainActivity.this::beginSignIn);
         }
     };
+
+    // Launches Google's consent screen when authorization needs interaction.
+    private final ActivityResultLauncher<IntentSenderRequest> authLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    GoogleAuth.handleResult(this, result.getData(), authCallback);
+                } else {
+                    showSignIn();
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -284,9 +287,14 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog dialog = sheet(sb.getRoot());
 
         final BuiltTx[] built = {null};
+        // Bumped on every input change and on each new review request, so an in-flight
+        // UTXO/fee calculation whose inputs are now stale is ignored when it returns.
+        final int[] gen = {0};
         Runnable resetReview = () -> {
             built[0] = null;
+            gen[0]++;
             sb.sendSummary.setVisibility(View.GONE);
+            sb.btnReview.setEnabled(true);
             sb.btnReview.setText(R.string.review);
         };
         TextWatcher watcher = new SimpleWatcher(resetReview);
@@ -322,6 +330,7 @@ public class MainActivity extends AppCompatActivity {
                 sb.amountLayout.setError(null);
             }
             final long finalAmount = amountSats;
+            final int myGen = ++gen[0];
             sb.btnReview.setEnabled(false);
             sb.btnReview.setText("Calculating…");
             Async.run(() -> {
@@ -329,6 +338,7 @@ public class MainActivity extends AppCompatActivity {
                 double feeRate = Esplora.fetchFeeRate();
                 return TxBuilder.create(wallet, to, finalAmount, utxos, feeRate, max);
             }, tx -> {
+                if (myGen != gen[0]) return; // inputs changed while building — discard stale review
                 built[0] = tx;
                 sb.btnReview.setEnabled(true);
                 sb.btnReview.setText(R.string.confirm_send);
@@ -338,6 +348,7 @@ public class MainActivity extends AppCompatActivity {
                 sb.sendSummary.setText(summary);
                 sb.sendSummary.setVisibility(View.VISIBLE);
             }, e -> {
+                if (myGen != gen[0]) return; // stale failure for inputs the user already changed
                 sb.btnReview.setEnabled(true);
                 sb.btnReview.setText(R.string.review);
                 toast(message(e));
