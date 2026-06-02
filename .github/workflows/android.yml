@@ -1,0 +1,68 @@
+name: Android build
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to publish the APK as a release asset on main
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        # The public Google client ID and network can be injected from repo
+        # variables; the build also compiles fine without them.
+        run: >-
+          ./gradlew --no-daemon assembleDebug
+          -PwolitGoogleClientId="${{ vars.ANDROID_GOOGLE_CLIENT_ID }}"
+          -PwolitNetwork="${{ vars.ANDROID_BITCOIN_NETWORK || 'testnet' }}"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wolit-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Stage APK for release
+        if: github.ref == 'refs/heads/main'
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/wolit-debug.apk
+
+      - name: Publish debug APK to a release (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-debug
+          name: wolit Android (debug)
+          prerelease: true
+          body: >-
+            Latest debug build of the native wolit Android app, rebuilt on every push to
+            main. Sideload `wolit-debug.apk` on an Android device (enable "install from
+            unknown sources"). Note: Google sign-in needs an Android OAuth client
+            registered for this APK's signing SHA-1 — see android/README.md.
+          files: android/app/build/outputs/apk/debug/wolit-debug.apk

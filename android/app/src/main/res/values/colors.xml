@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0A0C10</color>
+    <color name="surface">#12151C</color>
+    <color name="surface2">#1A1F29</color>
+    <color name="stroke">#262C38</color>
+    <color name="text">#E8EAED</color>
+    <color name="muted">#8B93A1</color>
+    <color name="accent">#F7931A</color>
+    <color name="accent_dark">#C9760A</color>
+    <color name="green">#3FB950</color>
+    <color name="red">#F85149</color>
+    <color name="on_accent">#0A0C10</color>
+    <color name="white">#FFFFFF</color>
+</resources>
