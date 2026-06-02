@@ -25,6 +25,7 @@ export default function App() {
         {w.status === 'ready' && w.account ? (
           <WalletHome
             account={w.account}
+            receiveAddress={w.receiveAddress}
             network={w.network}
             balance={w.balance}
             priceUsd={w.priceUsd}

@@ -28,6 +28,7 @@ const CopyIcon = () => (
 
 export function WalletHome({
   account,
+  receiveAddress,
   network,
   balance,
   priceUsd,
@@ -42,6 +43,7 @@ export function WalletHome({
   dismissJustCreated,
 }: {
   account: DerivedAccount
+  receiveAddress: string | null
   network: NetworkName
   balance: AddressStats | null
   priceUsd: number | null
@@ -62,9 +64,10 @@ export function WalletHome({
   const pending = balance?.pending ?? 0
   const availableSats = confirmed + pending
   const fiat = formatUsd(confirmed, priceUsd)
+  const addr = receiveAddress ?? account.address
 
   const copyAddress = async () => {
-    await navigator.clipboard.writeText(account.address)
+    await navigator.clipboard.writeText(addr)
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
@@ -139,7 +142,7 @@ export function WalletHome({
           </button>
         </div>
         <div className="address-row">
-          <span className="mono small break">{account.address}</span>
+          <span className="mono small break">{addr}</span>
           <button className="copy-btn" onClick={copyAddress} aria-label="Copy address">
             {copied ? <span className="copied-check">✓</span> : <CopyIcon />}
           </button>
@@ -213,7 +216,7 @@ export function WalletHome({
         />
       )}
       {modal === 'receive' && (
-        <ReceiveModal address={account.address} network={network} onClose={() => setModal(null)} />
+        <ReceiveModal address={addr} network={network} onClose={() => setModal(null)} />
       )}
       {modal === 'backup' && (
         <BackupModal mnemonic={account.mnemonic} onClose={() => setModal(null)} />

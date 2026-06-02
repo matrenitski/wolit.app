@@ -27,19 +27,63 @@ function coinType(net: NetworkName): number {
   return net === 'mainnet' ? 0 : 1
 }
 
+function purposeFor(addressType: AddressType): number {
+  return addressType === 'p2tr' ? 86 : 84
+}
+
+function addressFromNode(
+  node: BIP32Interface,
+  addressType: AddressType,
+  network: bitcoin.networks.Network,
+): string {
+  const address =
+    addressType === 'p2tr'
+      ? bitcoin.payments.p2tr({ internalPubkey: toXOnly(node.publicKey), network }).address
+      : bitcoin.payments.p2wpkh({ pubkey: node.publicKey, network }).address
+  if (!address) throw new Error('Could not derive a Bitcoin address')
+  return address
+}
+
+function scriptForNode(
+  node: BIP32Interface,
+  addressType: AddressType,
+  network: bitcoin.networks.Network,
+): Buffer {
+  const output =
+    addressType === 'p2tr'
+      ? bitcoin.payments.p2tr({ internalPubkey: toXOnly(node.publicKey), network }).output
+      : bitcoin.payments.p2wpkh({ pubkey: node.publicKey, network }).output
+  if (!output) throw new Error('Could not derive output script')
+  return Buffer.from(output)
+}
+
+/** An HD account: the account-level node from which receive/change addresses derive. */
 export interface DerivedAccount {
   mnemonic: string
   network: NetworkName
   addressType: AddressType
-  address: string // BIP86 bc1p… (new) or BIP84 bc1q… (legacy)
+  accountNode: BIP32Interface // m/purpose'/coin'/0'
+  address: string // primary receive address (external/0) — for first display
   path: string
-  node: BIP32Interface // signing key for that address
+}
+
+/** A derived address + the key that controls it. chain: 0 = receive, 1 = change. */
+export interface AddressKey {
+  address: string
+  chain: 0 | 1
+  index: number
+  node: BIP32Interface
 }
 
 export interface Utxo {
   txid: string
   vout: number
   value: number // satoshis
+}
+
+/** A UTXO tagged with the address/key that controls it (so we can sign it). */
+export interface OwnedUtxo extends Utxo {
+  key: AddressKey
 }
 
 export interface BuiltTx {
@@ -53,7 +97,6 @@ export interface BuiltTx {
 
 const DUST = 546 // sats — below this an output is not worth creating
 
-/** Generate a fresh 12-word BIP39 mnemonic. */
 export function generateMnemonic(): string {
   return bip39.generateMnemonic(128)
 }
@@ -63,10 +106,9 @@ export function isValidMnemonic(m: string): boolean {
 }
 
 /**
- * Derive the first receive account from a mnemonic.
- *  - 'p2tr'   → BIP86 Taproot,      m/86'/coin'/0'/0/0, bc1p…  (new wallets)
- *  - 'p2wpkh' → BIP84 native SegWit, m/84'/coin'/0'/0/0, bc1q…  (existing wallets)
- * Same seed, different address type — so a legacy wallet stays on its original bc1q address.
+ * Derive an HD account from a mnemonic.
+ *  - 'p2tr'   → BIP86 Taproot,       m/86'/coin'/0'/…  bc1p…  (new wallets)
+ *  - 'p2wpkh' → BIP84 native SegWit, m/84'/coin'/0'/…  bc1q…  (existing wallets)
  */
 export function deriveAccount(
   mnemonic: string,
@@ -76,16 +118,19 @@ export function deriveAccount(
   const seed = bip39.mnemonicToSeedSync(mnemonic.trim())
   const network = getNetwork(net)
   const root = bip32.fromSeed(seed, network)
-  const purpose = addressType === 'p2tr' ? 86 : 84
+  const purpose = purposeFor(addressType)
+  const accountNode = root.derivePath(`m/${purpose}'/${coinType(net)}'/0'`)
+  const first = accountNode.derive(0).derive(0)
+  const address = addressFromNode(first, addressType, network)
   const path = `m/${purpose}'/${coinType(net)}'/0'/0/0`
-  const node = root.derivePath(path)
+  return { mnemonic, network: net, addressType, accountNode, address, path }
+}
 
-  const address =
-    addressType === 'p2tr'
-      ? bitcoin.payments.p2tr({ internalPubkey: toXOnly(node.publicKey), network }).address
-      : bitcoin.payments.p2wpkh({ pubkey: node.publicKey, network }).address
-  if (!address) throw new Error('Could not derive a Bitcoin address')
-  return { mnemonic, network: net, addressType, address, path, node }
+/** Derive the address + signing key at (chain, index). chain: 0 = receive, 1 = change. */
+export function deriveAddress(account: DerivedAccount, chain: 0 | 1, index: number): AddressKey {
+  const node = account.accountNode.derive(chain).derive(index)
+  const address = addressFromNode(node, account.addressType, getNetwork(account.network))
+  return { address, chain, index, node }
 }
 
 export function isValidAddress(address: string, net: NetworkName): boolean {
@@ -103,20 +148,23 @@ function estimateVsize(nIn: number, nOut: number): number {
 }
 
 /**
- * Select coins, build, and sign a transaction spending from our single address.
- * Handles both P2WPKH (legacy) and P2TR key-path (new) wallets.
- * Throws a user-friendly Error if funds are insufficient or the address is bad.
+ * Select coins from across the wallet's addresses, build, and sign a transaction.
+ * Each input is signed with the key that controls it (P2WPKH or P2TR key-path).
+ * Change goes to `changeAddress` (a fresh change address). Throws a friendly Error
+ * if funds are insufficient or the recipient address is invalid.
  */
 export function createTransaction(params: {
   account: DerivedAccount
   toAddress: string
   amountSats: number
-  utxos: Utxo[]
+  utxos: OwnedUtxo[]
   feeRate: number // sat/vByte
+  changeAddress: string
   sendMax?: boolean
 }): BuiltTx {
-  const { account, toAddress, amountSats, utxos, feeRate, sendMax } = params
+  const { account, toAddress, amountSats, utxos, feeRate, changeAddress, sendMax } = params
   const network = getNetwork(account.network)
+  const isTaproot = account.addressType === 'p2tr'
 
   if (!isValidAddress(toAddress, account.network)) {
     throw new Error('That doesn’t look like a valid address for this network.')
@@ -126,7 +174,7 @@ export function createTransaction(params: {
   const sorted = [...utxos].sort((a, b) => b.value - a.value)
   const totalAvailable = sorted.reduce((s, u) => s + u.value, 0)
 
-  let selected: Utxo[] = []
+  let selected: OwnedUtxo[] = []
   let inSum = 0
 
   if (sendMax) {
@@ -155,7 +203,6 @@ export function createTransaction(params: {
     }
     change = inSum - amountSats - fee
     if (change < DUST) {
-      // Not worth a change output — fold the dust into the fee.
       fee += change
       change = 0
       outputs = 1
@@ -163,32 +210,28 @@ export function createTransaction(params: {
   }
 
   const psbt = new bitcoin.Psbt({ network })
-  const isTaproot = account.addressType === 'p2tr'
-  const xonly = isTaproot ? toXOnly(account.node.publicKey) : undefined
-  const ownScript = isTaproot
-    ? bitcoin.payments.p2tr({ internalPubkey: xonly!, network }).output!
-    : bitcoin.address.toOutputScript(account.address, network)
-
   for (const u of selected) {
+    const script = scriptForNode(u.key.node, account.addressType, network)
     psbt.addInput({
       hash: u.txid,
       index: u.vout,
-      witnessUtxo: { script: ownScript, value: u.value },
-      ...(isTaproot ? { tapInternalKey: xonly! } : {}),
+      witnessUtxo: { script, value: u.value },
+      ...(isTaproot ? { tapInternalKey: toXOnly(u.key.node.publicKey) } : {}),
     })
   }
   psbt.addOutput({ address: toAddress, value: sendAmount })
-  if (change > 0) psbt.addOutput({ address: account.address, value: change })
+  if (change > 0) psbt.addOutput({ address: changeAddress, value: change })
 
-  if (isTaproot) {
-    // BIP86 key-path spend: tweak the internal key by taggedHash('TapTweak', internalKey),
-    // then sign each input with a Schnorr signature.
-    const tweaked = ECPair.fromPrivateKey(account.node.privateKey!, { network }).tweak(
-      bitcoin.crypto.taggedHash('TapTweak', xonly!),
-    )
-    for (let i = 0; i < selected.length; i++) psbt.signInput(i, tweaked)
-  } else {
-    psbt.signAllInputs(account.node)
+  for (let i = 0; i < selected.length; i++) {
+    const node = selected[i].key.node
+    if (isTaproot) {
+      const tweaked = ECPair.fromPrivateKey(node.privateKey!, { network }).tweak(
+        bitcoin.crypto.taggedHash('TapTweak', toXOnly(node.publicKey)),
+      )
+      psbt.signInput(i, tweaked)
+    } else {
+      psbt.signInput(i, node)
+    }
   }
   psbt.finalizeAllInputs()
 

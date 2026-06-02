@@ -5,20 +5,20 @@ import type { ChosenAccount } from '../lib/googleDrive'
 import {
   createTransaction,
   deriveAccount,
+  deriveAddress,
   generateMnemonic,
   type BuiltTx,
   type DerivedAccount,
 } from '../lib/bitcoin'
 import {
-  fetchBalance,
   fetchFeeRate,
-  fetchHistory,
-  fetchUtxos,
+  fetchWalletHistory,
   broadcastTx,
   fetchPriceUsd,
   type AddressStats,
   type TxSummary,
 } from '../lib/esplora'
+import { scanWallet } from '../lib/walletScan'
 
 export type Status =
   | 'init'
@@ -39,6 +39,7 @@ export interface UseWallet {
   network: NetworkName
   account: DerivedAccount | null
   balance: AddressStats | null
+  receiveAddress: string | null
   priceUsd: number | null
   history: TxSummary[]
   refreshing: boolean
@@ -64,6 +65,7 @@ export function useWallet(): UseWallet {
   const [error, setError] = useState<string | null>(null)
   const [account, setAccount] = useState<DerivedAccount | null>(null)
   const [balance, setBalance] = useState<AddressStats | null>(null)
+  const [receiveAddress, setReceiveAddress] = useState<string | null>(null)
   const [priceUsd, setPriceUsd] = useState<number | null>(null)
   const [history, setHistory] = useState<TxSummary[]>([])
   const [refreshing, setRefreshing] = useState(false)
@@ -96,12 +98,13 @@ export function useWallet(): UseWallet {
     if (!account) return
     setRefreshing(true)
     try {
-      const [bal, hist, price] = await Promise.all([
-        fetchBalance(network, account.address),
-        fetchHistory(network, account.address).catch(() => [] as TxSummary[]),
+      const scan = await scanWallet(account)
+      const [hist, price] = await Promise.all([
+        fetchWalletHistory(network, scan.addresses).catch(() => [] as TxSummary[]),
         fetchPriceUsd().catch(() => null),
       ])
-      setBalance(bal)
+      setBalance({ confirmed: scan.confirmed, pending: scan.pending })
+      setReceiveAddress(deriveAddress(account, 0, scan.receiveIndex).address)
       setHistory(hist)
       setPriceUsd(price)
     } catch {
@@ -232,11 +235,17 @@ export function useWallet(): UseWallet {
   const buildTransaction = useCallback(
     async (toAddress: string, amountSats: number, sendMax: boolean): Promise<BuiltTx> => {
       if (!account) throw new Error('Wallet is not ready yet.')
-      const [utxos, feeRate] = await Promise.all([
-        fetchUtxos(network, account.address),
-        fetchFeeRate(network),
-      ])
-      return createTransaction({ account, toAddress, amountSats, utxos, feeRate, sendMax })
+      const [scan, feeRate] = await Promise.all([scanWallet(account), fetchFeeRate(network)])
+      const changeAddress = deriveAddress(account, 1, scan.changeIndex).address
+      return createTransaction({
+        account,
+        toAddress,
+        amountSats,
+        utxos: scan.utxos,
+        feeRate,
+        changeAddress,
+        sendMax,
+      })
     },
     [account, network],
   )
@@ -254,6 +263,7 @@ export function useWallet(): UseWallet {
     drive.signOut()
     setAccount(null)
     setBalance(null)
+    setReceiveAddress(null)
     setHistory([])
     setJustCreated(false)
     setChosenAccount(null)
@@ -266,6 +276,7 @@ export function useWallet(): UseWallet {
     drive.signOut()
     setAccount(null)
     setBalance(null)
+    setReceiveAddress(null)
     setHistory([])
     setJustCreated(false)
     setChosenAccount(null)
@@ -280,6 +291,7 @@ export function useWallet(): UseWallet {
     network,
     account,
     balance,
+    receiveAddress,
     priceUsd,
     history,
     refreshing,
