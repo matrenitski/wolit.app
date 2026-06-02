@@ -120,15 +120,21 @@ export function useWallet(): UseWallet {
     setStatus('loadingWallet')
     const file = await drive.loadWallet()
     if (file) {
-      setAccount(deriveAccount(file.mnemonic, network))
+      setAccount(deriveAccount(file.mnemonic, network, file.addressType ?? 'p2wpkh'))
       setJustCreated(false)
       setStatus('ready')
       return
     }
     setStatus('creating')
     const mnemonic = generateMnemonic()
-    const acct = deriveAccount(mnemonic, network)
-    await drive.saveWallet({ version: 1, network, mnemonic, createdAt: new Date().toISOString() })
+    const acct = deriveAccount(mnemonic, network, 'p2tr')
+    await drive.saveWallet({
+      version: 2,
+      network,
+      mnemonic,
+      addressType: 'p2tr',
+      createdAt: new Date().toISOString(),
+    })
     const saved = await drive.loadWallet()
     if (!saved || saved.mnemonic !== mnemonic) {
       throw new Error('Your wallet was created but Google Drive did not confirm it saved. Please try again.')

@@ -168,11 +168,6 @@ export function Landing({
         </div>
       </div>
 
-      <div className={`net-note mt-16 ${network}`}>
-        {network === 'testnet'
-          ? 'Testnet mode — these are practice coins, not real money.'
-          : 'Mainnet — this wallet holds real Bitcoin.'}
-      </div>
     </div>
   )
 }

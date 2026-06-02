@@ -1,21 +1,28 @@
 import * as bitcoin from 'bitcoinjs-lib'
 import { BIP32Factory, type BIP32Interface } from 'bip32'
+import { ECPairFactory } from 'ecpair'
 import * as ecc from '@bitcoinerlab/secp256k1'
 import * as bip39 from 'bip39'
 import type { NetworkName } from '../config'
 
 const bip32 = BIP32Factory(ecc)
+const ECPair = ECPairFactory(ecc)
 
-// Enable Taproot (bc1p…) addresses as send recipients. bitcoinjs-lib needs an ECC
-// backend to validate witness-v1 (P2TR) outputs; without this, sending to a bc1p
-// address throws "No ECC Library provided. You must call initEccLib()".
+// Taproot (P2TR) needs an ECC backend for address validation and Schnorr signing.
 bitcoin.initEccLib(ecc)
+
+export type AddressType = 'p2wpkh' | 'p2tr'
+
+/** Compressed pubkey → 32-byte x-only key (the Taproot internal key). */
+function toXOnly(pubkey: Uint8Array): Buffer {
+  return Buffer.from(pubkey.subarray(1, 33))
+}
 
 export function getNetwork(net: NetworkName): bitcoin.networks.Network {
   return net === 'mainnet' ? bitcoin.networks.bitcoin : bitcoin.networks.testnet
 }
 
-// BIP84 coin type: 0' for mainnet, 1' for all testnets.
+// BIP coin type: 0' for mainnet, 1' for all testnets.
 function coinType(net: NetworkName): number {
   return net === 'mainnet' ? 0 : 1
 }
@@ -23,7 +30,8 @@ function coinType(net: NetworkName): number {
 export interface DerivedAccount {
   mnemonic: string
   network: NetworkName
-  address: string // first receive address: m/84'/coin'/0'/0/0
+  addressType: AddressType
+  address: string // BIP86 bc1p… (new) or BIP84 bc1q… (legacy)
   path: string
   node: BIP32Interface // signing key for that address
 }
@@ -55,18 +63,29 @@ export function isValidMnemonic(m: string): boolean {
 }
 
 /**
- * Derive the first native-SegWit (BIP84, bc1/tb1) receive account from a mnemonic.
- * For an MVP single-address wallet this is all we need.
+ * Derive the first receive account from a mnemonic.
+ *  - 'p2tr'   → BIP86 Taproot,      m/86'/coin'/0'/0/0, bc1p…  (new wallets)
+ *  - 'p2wpkh' → BIP84 native SegWit, m/84'/coin'/0'/0/0, bc1q…  (existing wallets)
+ * Same seed, different address type — so a legacy wallet stays on its original bc1q address.
  */
-export function deriveAccount(mnemonic: string, net: NetworkName): DerivedAccount {
+export function deriveAccount(
+  mnemonic: string,
+  net: NetworkName,
+  addressType: AddressType = 'p2wpkh',
+): DerivedAccount {
   const seed = bip39.mnemonicToSeedSync(mnemonic.trim())
   const network = getNetwork(net)
   const root = bip32.fromSeed(seed, network)
-  const path = `m/84'/${coinType(net)}'/0'/0/0`
+  const purpose = addressType === 'p2tr' ? 86 : 84
+  const path = `m/${purpose}'/${coinType(net)}'/0'/0/0`
   const node = root.derivePath(path)
-  const { address } = bitcoin.payments.p2wpkh({ pubkey: node.publicKey, network })
+
+  const address =
+    addressType === 'p2tr'
+      ? bitcoin.payments.p2tr({ internalPubkey: toXOnly(node.publicKey), network }).address
+      : bitcoin.payments.p2wpkh({ pubkey: node.publicKey, network }).address
   if (!address) throw new Error('Could not derive a Bitcoin address')
-  return { mnemonic, network: net, address, path, node }
+  return { mnemonic, network: net, addressType, address, path, node }
 }
 
 export function isValidAddress(address: string, net: NetworkName): boolean {
@@ -78,13 +97,14 @@ export function isValidAddress(address: string, net: NetworkName): boolean {
   }
 }
 
-/** Rough vsize for a P2WPKH tx: inputs * 68 + outputs * 31 + 11 overhead. */
+/** Rough vsize estimate for fee planning: inputs * 68 + outputs * 31 + 11 overhead. */
 function estimateVsize(nIn: number, nOut: number): number {
   return Math.ceil(nIn * 68 + nOut * 31 + 11)
 }
 
 /**
  * Select coins, build, and sign a transaction spending from our single address.
+ * Handles both P2WPKH (legacy) and P2TR key-path (new) wallets.
  * Throws a user-friendly Error if funds are insufficient or the address is bad.
  */
 export function createTransaction(params: {
@@ -103,7 +123,6 @@ export function createTransaction(params: {
   }
   if (utxos.length === 0) throw new Error('No spendable coins yet.')
 
-  const ownScript = bitcoin.address.toOutputScript(account.address, network)
   const sorted = [...utxos].sort((a, b) => b.value - a.value)
   const totalAvailable = sorted.reduce((s, u) => s + u.value, 0)
 
@@ -144,17 +163,33 @@ export function createTransaction(params: {
   }
 
   const psbt = new bitcoin.Psbt({ network })
+  const isTaproot = account.addressType === 'p2tr'
+  const xonly = isTaproot ? toXOnly(account.node.publicKey) : undefined
+  const ownScript = isTaproot
+    ? bitcoin.payments.p2tr({ internalPubkey: xonly!, network }).output!
+    : bitcoin.address.toOutputScript(account.address, network)
+
   for (const u of selected) {
     psbt.addInput({
       hash: u.txid,
       index: u.vout,
       witnessUtxo: { script: ownScript, value: u.value },
+      ...(isTaproot ? { tapInternalKey: xonly! } : {}),
     })
   }
   psbt.addOutput({ address: toAddress, value: sendAmount })
   if (change > 0) psbt.addOutput({ address: account.address, value: change })
 
-  psbt.signAllInputs(account.node)
+  if (isTaproot) {
+    // BIP86 key-path spend: tweak the internal key by taggedHash('TapTweak', internalKey),
+    // then sign each input with a Schnorr signature.
+    const tweaked = ECPair.fromPrivateKey(account.node.privateKey!, { network }).tweak(
+      bitcoin.crypto.taggedHash('TapTweak', xonly!),
+    )
+    for (let i = 0; i < selected.length; i++) psbt.signInput(i, tweaked)
+  } else {
+    psbt.signAllInputs(account.node)
+  }
   psbt.finalizeAllInputs()
 
   const tx = psbt.extractTransaction()

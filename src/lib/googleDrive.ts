@@ -10,6 +10,8 @@ export interface WalletFile {
   network: NetworkName
   mnemonic: string
   createdAt: string
+  /** 'p2tr' = BIP86 Taproot (new wallets). Absent/'p2wpkh' = BIP84 legacy. */
+  addressType?: 'p2wpkh' | 'p2tr'
 }
 
 function gisReady(): boolean {
