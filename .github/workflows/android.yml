@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to publish the APK as a release asset on main
     defaults:
       run:
         working-directory: android
@@ -40,9 +42,27 @@ jobs:
           -PwolitGoogleClientId="${{ vars.ANDROID_GOOGLE_CLIENT_ID }}"
           -PwolitNetwork="${{ vars.ANDROID_BITCOIN_NETWORK || 'testnet' }}"
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: wolit-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Stage APK for release
+        if: github.ref == 'refs/heads/main'
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/wolit-debug.apk
+
+      - name: Publish debug APK to a release (main only)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-debug
+          name: wolit Android (debug)
+          prerelease: true
+          body: >-
+            Latest debug build of the native wolit Android app, rebuilt on every push to
+            main. Sideload `wolit-debug.apk` on an Android device (enable "install from
+            unknown sources"). Note: Google sign-in needs an Android OAuth client
+            registered for this APK's signing SHA-1 — see android/README.md.
+          files: android/app/build/outputs/apk/debug/wolit-debug.apk
