@@ -96,11 +96,46 @@ export function signOut(): void {
 export interface ChosenAccount {
   email: string
   name?: string
+  picture?: string
+}
+
+const ACCOUNTS_KEY = 'wolit_accounts'
+
+/** Accounts that have signed in before, remembered locally (name + photo) to offer quick re-sign-in. */
+export function getRememberedAccounts(): ChosenAccount[] {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY)
+    const list = raw ? JSON.parse(raw) : []
+    return Array.isArray(list) ? list.filter((a) => a && a.email) : []
+  } catch {
+    return []
+  }
+}
+
+export function rememberAccount(a: ChosenAccount): void {
+  try {
+    const list = getRememberedAccounts().filter((x) => x.email !== a.email)
+    list.unshift({ email: a.email, name: a.name, picture: a.picture })
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list.slice(0, 5)))
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+export function forgetAccount(email: string): void {
+  try {
+    localStorage.setItem(
+      ACCOUNTS_KEY,
+      JSON.stringify(getRememberedAccounts().filter((x) => x.email !== email)),
+    )
+  } catch {
+    /* ignore */
+  }
 }
 
 let oneTapInited = false
 
-function decodeJwtPayload(jwt: string): { email?: string; name?: string } {
+function decodeJwtPayload(jwt: string): { email?: string; name?: string; picture?: string } {
   try {
     const b64 = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
     const json = decodeURIComponent(
@@ -126,7 +161,7 @@ export function promptAccountChooser(onAccount: (a: ChosenAccount) => void): voi
       use_fedcm_for_prompt: true,
       callback: (resp) => {
         const p = decodeJwtPayload(resp.credential)
-        if (p.email) onAccount({ email: p.email, name: p.name })
+        if (p.email) onAccount({ email: p.email, name: p.name, picture: p.picture })
       },
     })
     oneTapInited = true

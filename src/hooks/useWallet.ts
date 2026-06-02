@@ -21,7 +21,7 @@ import {
 } from '../lib/esplora'
 
 export type Status =
-  | 'init' // waiting for Google Identity Services to load
+  | 'init'
   | 'signedOut'
   | 'authorizing'
   | 'loadingWallet'
@@ -44,7 +44,10 @@ export interface UseWallet {
   refreshing: boolean
   justCreated: boolean
   chosenAccount: ChosenAccount | null
+  rememberedAccounts: ChosenAccount[]
   signIn: () => Promise<void>
+  signInAs: (account: ChosenAccount) => Promise<void>
+  useAnotherAccount: () => void
   continueWithChosen: () => Promise<void>
   retry: () => void
   refresh: () => Promise<void>
@@ -66,9 +69,11 @@ export function useWallet(): UseWallet {
   const [refreshing, setRefreshing] = useState(false)
   const [justCreated, setJustCreated] = useState(false)
   const [chosenAccount, setChosenAccount] = useState<ChosenAccount | null>(null)
+  const [rememberedAccounts, setRememberedAccounts] = useState<ChosenAccount[]>(() =>
+    drive.getRememberedAccounts(),
+  )
   const oneTapStarted = useRef(false)
 
-  // Wait for the Google script, then offer sign-in.
   useEffect(() => {
     let cancelled = false
     drive
@@ -100,7 +105,7 @@ export function useWallet(): UseWallet {
       setHistory(hist)
       setPriceUsd(price)
     } catch {
-      // Keep whatever we had; a transient explorer hiccup shouldn't blank the UI.
+      /* keep prior data on transient failures */
     } finally {
       setRefreshing(false)
     }
@@ -110,7 +115,6 @@ export function useWallet(): UseWallet {
     if (status === 'ready' && account) void refresh()
   }, [status, account, refresh])
 
-  // After a Drive token is obtained, load the existing wallet or create a new one.
   const afterAuthorized = useCallback(async () => {
     setChosenAccount(null)
     setStatus('loadingWallet')
@@ -124,12 +128,7 @@ export function useWallet(): UseWallet {
     setStatus('creating')
     const mnemonic = generateMnemonic()
     const acct = deriveAccount(mnemonic, network)
-    await drive.saveWallet({
-      version: 1,
-      network,
-      mnemonic,
-      createdAt: new Date().toISOString(),
-    })
+    await drive.saveWallet({ version: 1, network, mnemonic, createdAt: new Date().toISOString() })
     const saved = await drive.loadWallet()
     if (!saved || saved.mnemonic !== mnemonic) {
       throw new Error('Your wallet was created but Google Drive did not confirm it saved. Please try again.')
@@ -139,7 +138,66 @@ export function useWallet(): UseWallet {
     setStatus('ready')
   }, [network])
 
-  // The fallback button: full account chooser.
+  const remember = useCallback((acct: ChosenAccount) => {
+    drive.rememberAccount(acct)
+    setRememberedAccounts(drive.getRememberedAccounts())
+  }, [])
+
+  // Authorize a specific account (silent if already granted, else consent), then open its wallet.
+  const authorizeAccount = useCallback(
+    async (acct: ChosenAccount) => {
+      try {
+        setError(null)
+        setStatus('authorizing')
+        try {
+          await drive.authorizeSilently(acct.email)
+        } catch {
+          await drive.authorizeWithConsent(acct.email)
+        }
+        remember(acct)
+        await afterAuthorized()
+      } catch (e) {
+        setError(errMsg(e))
+        setStatus('error')
+      }
+    },
+    [afterAuthorized, remember],
+  )
+
+  const signInAs = useCallback(
+    (acct: ChosenAccount) => authorizeAccount(acct),
+    [authorizeAccount],
+  )
+
+  const continueWithChosen = useCallback(async () => {
+    if (chosenAccount) await authorizeAccount(chosenAccount)
+  }, [chosenAccount, authorizeAccount])
+
+  // Show Google's One Tap chooser (gives us name + photo) to pick or add an account.
+  const promptOneTap = useCallback(() => {
+    drive.promptAccountChooser(async (acct) => {
+      setError(null)
+      setStatus('authorizing')
+      try {
+        try {
+          await drive.authorizeSilently(acct.email)
+        } catch {
+          await drive.authorizeWithConsent(acct.email)
+        }
+        remember(acct)
+        await afterAuthorized()
+      } catch {
+        // Consent popup blocked → offer a one-click "Continue as …".
+        remember(acct)
+        setChosenAccount(acct)
+        setStatus('signedOut')
+      }
+    })
+  }, [afterAuthorized, remember])
+
+  const useAnotherAccount = useCallback(() => promptOneTap(), [promptOneTap])
+
+  // The plain fallback button: full Google account chooser (used when One Tap can't show).
   const signIn = useCallback(async () => {
     try {
       setError(null)
@@ -153,50 +211,12 @@ export function useWallet(): UseWallet {
     }
   }, [afterAuthorized])
 
-  // Continue with the account picked from the One Tap chooser (shows consent if needed).
-  const continueWithChosen = useCallback(async () => {
-    const acct = chosenAccount
-    if (!acct) return
-    try {
-      setError(null)
-      setStatus('authorizing')
-      await drive.authorizeWithConsent(acct.email)
-      await afterAuthorized()
-    } catch (e) {
-      setError(errMsg(e))
-      setStatus('error')
-    }
-  }, [chosenAccount, afterAuthorized])
-
-  // Auto-show the Google account chooser (One Tap) once we're ready for sign-in.
+  // First arrival with no remembered accounts → auto-show the One Tap chooser.
   useEffect(() => {
     if (status !== 'signedOut' || oneTapStarted.current) return
     oneTapStarted.current = true
-    drive.promptAccountChooser(async (acct) => {
-      // The user picked an account from the chooser.
-      setError(null)
-      setStatus('authorizing')
-      // 1) Returning users (Drive already granted) get a token with no popup → straight in.
-      try {
-        await drive.authorizeSilently(acct.email)
-        await afterAuthorized()
-        return
-      } catch {
-        /* not granted yet for this account */
-      }
-      // 2) First time: open Google's Drive-consent directly, using the One Tap selection.
-      try {
-        await drive.authorizeWithConsent(acct.email)
-        await afterAuthorized()
-        return
-      } catch {
-        /* consent popup blocked or dismissed */
-      }
-      // 3) Fallback: a one-click "Continue as …" button (e.g. if the popup was blocked).
-      setChosenAccount(acct)
-      setStatus('signedOut')
-    })
-  }, [status, afterAuthorized])
+    if (rememberedAccounts.length === 0) promptOneTap()
+  }, [status, rememberedAccounts.length, promptOneTap])
 
   const retry = useCallback(() => {
     setError(null)
@@ -259,7 +279,10 @@ export function useWallet(): UseWallet {
     refreshing,
     justCreated,
     chosenAccount,
+    rememberedAccounts,
     signIn,
+    signInAs,
+    useAnotherAccount,
     continueWithChosen,
     retry,
     refresh,

@@ -45,7 +45,10 @@ export default function App() {
             statusLabel={STATUS_LABEL[w.status] ?? 'Working…'}
             error={w.status === 'error' ? w.error : null}
             chosenAccount={w.chosenAccount}
+            rememberedAccounts={w.rememberedAccounts}
             onSignIn={w.signIn}
+            onSignInAs={w.signInAs}
+            onUseAnother={w.useAnotherAccount}
             onContinueAs={w.continueWithChosen}
             onRetry={w.retry}
           />

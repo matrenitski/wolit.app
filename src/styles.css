@@ -93,6 +93,86 @@ body {
   color: var(--muted);
 }
 
+/* Remembered-account list */
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.account-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.06s ease;
+}
+.account-btn:hover {
+  background: var(--surface-3);
+}
+.account-btn:active {
+  transform: translateY(1px);
+}
+.account-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.account-avatar {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-3);
+}
+.account-avatar.letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #2a1803;
+  background: linear-gradient(180deg, var(--accent-2), var(--accent));
+}
+.account-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.account-name {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-email {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.signing-in {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 15px;
+  padding: 16px;
+}
+.signing-in .spinner {
+  border-color: rgba(255, 255, 255, 0.25);
+  border-top-color: var(--accent);
+}
+
 .card {
   width: 100%;
   background: var(--surface);

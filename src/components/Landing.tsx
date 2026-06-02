@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { GOOGLE_CLIENT_ID, type NetworkName } from '../config'
 import type { ChosenAccount } from '../lib/googleDrive'
 
@@ -12,13 +13,53 @@ function GoogleG() {
   )
 }
 
+function Avatar({ account }: { account: ChosenAccount }) {
+  const [failed, setFailed] = useState(false)
+  if (account.picture && !failed) {
+    return (
+      <img
+        className="account-avatar"
+        src={account.picture}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setFailed(true)}
+      />
+    )
+  }
+  const letter = (account.name || account.email || '?').trim().charAt(0).toUpperCase()
+  return <span className="account-avatar letter">{letter}</span>
+}
+
+function AccountButton({
+  account,
+  disabled,
+  onClick,
+}: {
+  account: ChosenAccount
+  disabled: boolean
+  onClick: () => void
+}) {
+  return (
+    <button className="account-btn" onClick={onClick} disabled={disabled}>
+      <Avatar account={account} />
+      <span className="account-info">
+        <span className="account-name">{account.name || account.email}</span>
+        {account.name && <span className="account-email">{account.email}</span>}
+      </span>
+    </button>
+  )
+}
+
 export function Landing({
   network,
   busy,
   statusLabel,
   error,
   chosenAccount,
+  rememberedAccounts,
   onSignIn,
+  onSignInAs,
+  onUseAnother,
   onContinueAs,
   onRetry,
 }: {
@@ -27,7 +68,10 @@ export function Landing({
   statusLabel: string
   error: string | null
   chosenAccount: ChosenAccount | null
+  rememberedAccounts: ChosenAccount[]
   onSignIn: () => void
+  onSignInAs: (account: ChosenAccount) => void
+  onUseAnother: () => void
   onContinueAs: () => void
   onRetry: () => void
 }) {
@@ -50,40 +94,41 @@ export function Landing({
           <strong>Setup needed.</strong> This app has no Google Client ID yet. Add{' '}
           <code>VITE_GOOGLE_CLIENT_ID</code> to <code>.env.local</code> and reload — see the README.
         </div>
+      ) : busy ? (
+        <div className="signing-in mt-16">
+          <span className="spinner" /> {statusLabel}
+        </div>
       ) : chosenAccount ? (
         <>
-          <button className="btn btn-google mt-16" onClick={onContinueAs} disabled={busy}>
-            {busy ? (
-              <>
-                <span className="spinner" /> {statusLabel}
-              </>
-            ) : (
-              <>
-                <GoogleG /> Continue as {chosenAccount.name || chosenAccount.email}
-              </>
-            )}
+          <button className="btn btn-google mt-16" onClick={onContinueAs}>
+            <GoogleG /> Continue as {chosenAccount.name || chosenAccount.email}
           </button>
           <div className="center mt-8">
-            <button className="muted-link" onClick={onSignIn} disabled={busy}>
+            <button className="muted-link" onClick={onUseAnother}>
+              Use another account
+            </button>
+          </div>
+        </>
+      ) : rememberedAccounts.length > 0 ? (
+        <>
+          <div className="account-list mt-16">
+            {rememberedAccounts.map((a) => (
+              <AccountButton key={a.email} account={a} disabled={busy} onClick={() => onSignInAs(a)} />
+            ))}
+          </div>
+          <div className="center mt-8">
+            <button className="muted-link" onClick={onUseAnother}>
               Use another account
             </button>
           </div>
         </>
       ) : (
-        <button className="btn btn-google mt-16" onClick={onSignIn} disabled={busy}>
-          {busy ? (
-            <>
-              <span className="spinner" /> {statusLabel}
-            </>
-          ) : (
-            <>
-              <GoogleG /> Continue with Google
-            </>
-          )}
+        <button className="btn btn-google mt-16" onClick={onSignIn}>
+          <GoogleG /> Continue with Google
         </button>
       )}
 
-      {configured && (
+      {configured && !busy && (
         <p className="consent-note">
           Google will ask to let wolit save your wallet in a private, app-only folder of your
           Drive — that’s where your key lives, and only you can open it.
