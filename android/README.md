@@ -38,6 +38,18 @@ The Authorization API matches your app by **package name + signing certificate**
 need an *Android-type* OAuth client (separate from the website's *Web* client) in the same
 Google Cloud project.
 
+> ⚠️ **Interoperability requires the SAME Cloud project.** The Drive `appDataFolder` is
+> scoped *per Google Cloud project* (shared across that project's OAuth clients), not per
+> client. The web↔Android wallet sharing this app promises **only holds if the Android
+> OAuth client lives in the same project as the web client**. In a different project the
+> app gets a *separate* `appDataFolder` and will not see the wallet file created on the web
+> (a fresh wallet is created instead).
+>
+> Also note: the `wolitGoogleClientId` value is **not** what authorizes the Drive grant —
+> Play Services authorizes by package + SHA-1 against the Android client. That Gradle value
+> only drives the "is this build configured?" UI gate. The functional requirement is the
+> Android OAuth client below.
+
 1. In the [Google Cloud Console](https://console.cloud.google.com/) open the wolit project
    (the one with the Drive API enabled and the `drive.appdata` scope on the consent screen).
 2. **APIs & Services → Credentials → Create credentials → OAuth client ID**

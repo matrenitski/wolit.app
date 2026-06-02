@@ -7,7 +7,14 @@ package app.wolit;
 public final class Config {
     private Config() {}
 
-    /** Public Google OAuth client ID (safe to ship; not a secret). Set via Gradle. */
+    /**
+     * Public Google OAuth (Web) client ID, set via Gradle. NOTE: this is NOT what
+     * authorizes the Drive grant — Play Services matches the grant by the app's package
+     * name + signing SHA-1 against an *Android-type* OAuth client, and GoogleAuth only
+     * requests scopes. This value is used purely as the "is the app configured?" UI gate.
+     * The functional requirement is an Android OAuth client registered for this package +
+     * SHA-1 in the same Cloud project as the web app (see android/README.md).
+     */
     public static final String GOOGLE_CLIENT_ID = BuildConfig.GOOGLE_CLIENT_ID;
 
     /** "testnet" (default) or "mainnet". */

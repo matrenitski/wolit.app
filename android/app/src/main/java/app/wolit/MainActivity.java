@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -88,6 +89,10 @@ public class MainActivity extends AppCompatActivity {
         b = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(b.getRoot());
         setSupportActionBar(b.toolbar);
+
+        // An exported (passphrase-encrypted) backup is staged in the cache only long
+        // enough to share it; sweep any left over from a previous session.
+        clearStaleBackups();
 
         String net = mainnet ? "MAINNET" : "TESTNET";
         b.networkBadge.setText(net);
@@ -171,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
             WolitWallet w = WolitWallet.fromMnemonic(file.mnemonic, mainnet);
             return new Opened(w, file, created);
         }, opened -> {
+            if (gone()) return;
             wallet = opened.wallet;
             walletFile = opened.file;
             b.addressText.setText(wallet.address);
@@ -178,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
             if (opened.created) toast("Wallet created");
             refresh();
         }, e -> {
+            if (gone()) return;
             if (e instanceof DriveStore.NeedsAuthException) {
                 showError(message(e), this::beginSignIn);
             } else {
@@ -204,7 +211,10 @@ public class MainActivity extends AppCompatActivity {
             try { hist = Esplora.fetchHistory(address); } catch (Exception e) { hist = Esplora.emptyHistory(); }
             Double price = Esplora.fetchPriceUsd();
             return new Snapshot(bal, hist, price);
-        }, snap -> renderBalance(snap), e -> {
+        }, snap -> {
+            if (gone()) return;
+            renderBalance(snap);
+        }, e -> {
             // Keep prior data on transient failures.
         });
     }
@@ -338,6 +348,7 @@ public class MainActivity extends AppCompatActivity {
                 double feeRate = Esplora.fetchFeeRate();
                 return TxBuilder.create(wallet, to, finalAmount, utxos, feeRate, max);
             }, tx -> {
+                if (gone()) return;
                 if (myGen != gen[0]) return; // inputs changed while building — discard stale review
                 built[0] = tx;
                 sb.btnReview.setEnabled(true);
@@ -348,6 +359,7 @@ public class MainActivity extends AppCompatActivity {
                 sb.sendSummary.setText(summary);
                 sb.sendSummary.setVisibility(View.VISIBLE);
             }, e -> {
+                if (gone()) return;
                 if (myGen != gen[0]) return; // stale failure for inputs the user already changed
                 sb.btnReview.setEnabled(true);
                 sb.btnReview.setText(R.string.review);
@@ -361,10 +373,12 @@ public class MainActivity extends AppCompatActivity {
         showLoading(getString(R.string.sending));
         dialog.dismiss();
         Async.run(() -> Esplora.broadcast(tx.hex), txid -> {
+            if (gone()) return;
             showWallet();
             toast("Sent! " + Format.shortAddr(txid, 10, 8));
             b.toolbar.postDelayed(this::refresh, 1500);
         }, e -> {
+            if (gone()) return;
             showWallet();
             new AlertDialog.Builder(this)
                     .setTitle("Broadcast failed")
@@ -380,6 +394,12 @@ public class MainActivity extends AppCompatActivity {
         if (wallet == null) return;
         DialogBackupBinding bb = DialogBackupBinding.inflate(getLayoutInflater());
         AlertDialog dialog = sheet(bb.getRoot());
+        // The recovery words are about to be shown here: block screenshots, screen
+        // recording, the recent-apps thumbnail, and overlay capture for this window.
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE);
+        }
 
         bb.btnShowWords.setOnClickListener(v -> {
             bb.mnemonicBox.setText(numberedWords(wallet.mnemonic));
@@ -407,6 +427,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return out;
             }, file -> {
+                if (gone()) return;
                 dialog.dismiss();
                 Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
                 Intent share = new Intent(Intent.ACTION_SEND)
@@ -429,8 +450,8 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton(R.string.delete_confirm, (d, w) -> {
                     showLoading(getString(R.string.delete_wallet) + "…");
                     Async.run(() -> { DriveStore.deleteWallet(); return null; },
-                            r -> { signOutLocal(); },
-                            e -> showError(message(e), this::showWalletIfReady));
+                            r -> { if (!gone()) signOutLocal(); },
+                            e -> { if (!gone()) showError(message(e), this::showWalletIfReady); });
                 })
                 .show();
     }
@@ -489,6 +510,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void toast(String text) {
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+    }
+
+    /** True once the Activity is finishing/destroyed; async callbacks must not touch views. */
+    private boolean gone() {
+        return isFinishing() || isDestroyed();
+    }
+
+    private void clearStaleBackups() {
+        File[] files = new File(getCacheDir(), "backups").listFiles();
+        if (files != null) {
+            for (File f : files) {
+                //noinspection ResultOfMethodCallIgnored
+                f.delete();
+            }
+        }
     }
 
     private static String numberedWords(String mnemonic) {

@@ -34,6 +34,11 @@ public final class Http {
 
     public static Response request(String method, String url, Map<String, String> headers,
                                    String contentType, byte[] body) throws IOException {
+        // Defense-in-depth: refuse anything but HTTPS. All callers already use HTTPS and
+        // cleartext is blocked on targetSdk 34, but this guards a future caller too.
+        if (!url.regionMatches(true, 0, "https://", 0, 8)) {
+            throw new IOException("Refusing non-HTTPS request");
+        }
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         try {
             conn.setRequestMethod(method);
