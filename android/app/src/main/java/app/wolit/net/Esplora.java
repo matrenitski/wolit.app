@@ -141,9 +141,8 @@ public final class Esplora {
                 out.add(new TxSummary(tx.getString("txid"), delta, confirmed, blockTime));
             }
             return out;
-        } catch (IOException e) {
-            throw e;
         } catch (Exception e) {
+            // org.json parsing throws JSONException (a RuntimeException); wrap it.
             throw new IOException("Unexpected history response", e);
         }
     }
