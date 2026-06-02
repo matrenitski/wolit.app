@@ -98,7 +98,7 @@ export function Landing({
       </div>
 
       <p className="value-line">
-        Just your <strong>Google account</strong> — no password to lose, no seed phrase to write down.
+        Keys are stored in <strong>your</strong> Google account — no new password to lose.
       </p>
 
       {!configured ? (
