@@ -1,0 +1,85 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'app.wolit'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'app.wolit'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '0.1.0'
+
+        // The public Google OAuth client ID and the Bitcoin network are baked in at
+        // build time, mirroring the web app's VITE_* env vars. Override them from
+        // gradle.properties or -P flags, e.g. -PwolitGoogleClientId=... -PwolitNetwork=mainnet
+        def googleClientId = project.findProperty('wolitGoogleClientId') ?: ''
+        def network = project.findProperty('wolitNetwork') ?: 'testnet'
+        buildConfigField 'String', 'GOOGLE_CLIENT_ID', "\"${googleClientId}\""
+        buildConfigField 'String', 'BITCOIN_NETWORK', "\"${network}\""
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // Keep debug builds quick; no shrinking.
+        }
+    }
+
+    compileOptions {
+        // bitcoinj + java.time usage; desugaring keeps minSdk 26 happy.
+        coreLibraryDesugaringEnabled true
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            // bitcoinj/bouncycastle/guava ship overlapping metadata; drop the noise.
+            excludes += [
+                'META-INF/DEPENDENCIES',
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt',
+                'META-INF/*.kotlin_module',
+                'META-INF/versions/9/OSGI-INF/MANIFEST.MF',
+                'org/bitcoin/protocols/payments/Protos*',
+            ]
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.activity:activity:1.9.2'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.12.0'
+
+    // Native Google sign-in / authorization (no WebView OAuth). Gives us an access
+    // token for the drive.appdata scope that we use against the Drive REST API.
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
+
+    // Bitcoin: BIP39/BIP32/BIP84 derivation and SegWit (P2WPKH) signing.
+    implementation 'org.bitcoinj:bitcoinj-core:0.16.3'
+    // bitcoinj logs through SLF4J; the no-op binding keeps it quiet on device.
+    runtimeOnly 'org.slf4j:slf4j-nop:1.7.36'
+
+    // QR code generation for the receive screen.
+    implementation 'com.google.zxing:core:3.5.3'
+
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.2'
+}

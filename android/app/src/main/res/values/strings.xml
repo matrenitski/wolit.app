@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">wolit</string>
+    <string name="tagline">The simplest Bitcoin wallet</string>
+    <string name="subtagline">Sign in with Google. Your key lives in your own Google Drive — no seed phrase to write down, no server in the middle.</string>
+    <string name="continue_google">Continue with Google</string>
+    <string name="signing_in">Signing in…</string>
+    <string name="loading_wallet">Opening your wallet…</string>
+    <string name="creating_wallet">Creating your wallet…</string>
+    <string name="your_address">Your address</string>
+    <string name="receive">Receive</string>
+    <string name="send">Send</string>
+    <string name="copy">Copy</string>
+    <string name="share">Share</string>
+    <string name="copied">Copied to clipboard</string>
+    <string name="recent_activity">Recent activity</string>
+    <string name="no_activity">No transactions yet.</string>
+    <string name="pending">pending</string>
+    <string name="retry">Try again</string>
+    <string name="refresh">Refresh</string>
+    <string name="backup">Back up wallet</string>
+    <string name="sign_out">Sign out</string>
+    <string name="delete_wallet">Delete wallet</string>
+    <string name="not_configured">This build has no Google Client ID. Set wolitGoogleClientId in gradle.properties.</string>
+
+    <!-- Receive -->
+    <string name="receive_title">Receive Bitcoin</string>
+    <string name="receive_hint">Share this address or QR to get paid. It never changes.</string>
+
+    <!-- Send -->
+    <string name="send_title">Send Bitcoin</string>
+    <string name="to_address">Recipient address</string>
+    <string name="amount_btc">Amount (BTC)</string>
+    <string name="send_max">Send max</string>
+    <string name="review">Review</string>
+    <string name="confirm_send">Confirm &amp; send</string>
+    <string name="sending">Broadcasting…</string>
+
+    <!-- Backup -->
+    <string name="backup_title">Back up your wallet</string>
+    <string name="backup_hint">Your 12 recovery words are the master key. Keep them private. You can also export an encrypted backup file protected by a passphrase.</string>
+    <string name="show_words">Show recovery words</string>
+    <string name="passphrase">Backup passphrase</string>
+    <string name="export_encrypted">Export encrypted file</string>
+
+    <!-- Delete -->
+    <string name="delete_title">Delete this wallet?</string>
+    <string name="delete_warning">This removes the wallet file from your Google Drive. If you have not backed up your 12 words, any coins will be lost forever. This cannot be undone.</string>
+    <string name="delete_confirm">Delete forever</string>
+    <string name="cancel">Cancel</string>
+</resources>

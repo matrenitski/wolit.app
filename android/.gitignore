@@ -1,0 +1,13 @@
+# Android / Gradle build artifacts
+.gradle/
+build/
+app/build/
+captures/
+local.properties
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+.idea/
+*.iml
+.DS_Store
