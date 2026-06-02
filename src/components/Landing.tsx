@@ -84,9 +84,21 @@ export function Landing({
       </div>
       <p className="tagline">the simplest Bitcoin wallet</p>
 
-      <p className="muted mt-16">
-        Choose your Google account to continue. Your private key is created in your browser and saved
-        to your own Google&nbsp;Drive — nothing to write down, no password to forget.
+      <div className="uvp-badges">
+        <span className="uvp">100% client-side</span>
+        <span className="uvp">No servers</span>
+        <a
+          className="uvp uvp-link"
+          href="https://github.com/matrenitski/wolit.app"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open source ↗
+        </a>
+      </div>
+
+      <p className="value-line">
+        Your keys live in <strong>your</strong> Google account — so your money is only yours.
       </p>
 
       {!configured ? (
@@ -128,13 +140,6 @@ export function Landing({
         </button>
       )}
 
-      {configured && !busy && (
-        <p className="consent-note">
-          Google will ask to let wolit save your wallet in a private, app-only folder of your
-          Drive — that’s where your key lives, and only you can open it.
-        </p>
-      )}
-
       {error && (
         <div className="banner error mt-8">
           {error}{' '}
@@ -143,6 +148,25 @@ export function Landing({
           </button>
         </div>
       )}
+
+      <div className="how">
+        <div className="how-title">How it works</div>
+        <div className="how-step">
+          <span className="how-num">1</span>
+          <span>Sign in with Google — nothing to download, no seed phrase to manage.</span>
+        </div>
+        <div className="how-step">
+          <span className="how-num">2</span>
+          <span>
+            Your key is created in your browser and saved to a private folder in your own
+            Drive. <strong>We never see it.</strong>
+          </span>
+        </div>
+        <div className="how-step">
+          <span className="how-num">3</span>
+          <span>Send and receive Bitcoin. Export your 12 words anytime — you’re never locked in.</span>
+        </div>
+      </div>
 
       <div className={`net-note mt-16 ${network}`}>
         {network === 'testnet'
